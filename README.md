@@ -1,28 +1,22 @@
 # RagSmith
 
-RagSmith converts PDFs to RAG-ready Markdown with a simple Python API, a CLI, and a PyQt6 desktop app. It bundles multiple conversion backends and post-processing tools for cleaning, reflowing, and optionally splitting Markdown into sections.
+RagSmith converts PDFs to RAG-ready Markdown with a Python API, CLI, and PyQt6 GUI. It bundles multiple PDF→Markdown backends and a cleaning pipeline so you can prepare documents for retrieval workflows quickly.
 
 ## Project layout
 
 ```
 RagSmith/
-  ragsmith/             # package (app, backends, processing, cli, ui)
+  ragsmith/            # package (app, backends, processing, cli, ui)
+  README.md
   requirements.txt
   pyproject.toml
-  README.md
 ```
 
-## Features
-
-- Multiple PDF → Markdown backends: Docling (GPU-aware), PyMuPDF4LLM, and MarkItDown.
-- Cleaning pipeline that removes repeated headers/footers, page numbers, and boilerplate noise.
-- Optional paragraph reflow that preserves Markdown structure.
-- Optional splitting by top-level headings for chunked retrieval workflows.
-- CLI and PyQt6 GUI built on the same `PdfMarkdownApp` orchestration layer.
+There is no extra `src/` nesting—the `ragsmith` package at the repository root is the code you import, run, and ship.
 
 ## Installation
 
-Create and activate a virtual environment, then install:
+Create a virtual environment and install the project in editable mode:
 
 ```bash
 python -m venv .venv
@@ -31,9 +25,9 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-For Docling GPU acceleration, install a CUDA-capable `torch` build and choose the `cuda` device when configuring the Docling backend.
+Docling GPU acceleration requires a CUDA-capable `torch` build; otherwise Docling will fall back to CPU.
 
-## CLI usage
+## Running the CLI
 
 Convert one or more PDFs from the command line:
 
@@ -46,21 +40,21 @@ python -m ragsmith.cli.main \
   path/to/file1.pdf path/to/file2.pdf
 ```
 
-Key options:
-
-- `--backend {markitdown,pymupdf4llm,docling}`: choose the conversion backend.
-- `--output-dir PATH`: destination directory for Markdown (created if missing).
-- `--split-sections` / `--no-split-sections`: write one Markdown file per top-level heading.
-- `--reflow` / `--no-reflow`: enable or disable paragraph reflow.
-- `--overwrite`: allow replacing existing Markdown files.
-
 After installation you can also use the entry point:
 
 ```bash
-ragsmith-cli ...
+ragsmith-cli --backend pymupdf4llm --output-dir ./out my.pdf
 ```
 
-## GUI usage
+Key options:
+
+- `--backend {markitdown,pymupdf4llm,docling}`: choose the conversion backend.
+- `--output-dir PATH`: directory where Markdown files are written.
+- `--split-sections` / `--no-split-sections`: emit one Markdown file per top-level heading.
+- `--reflow` / `--no-reflow`: toggle paragraph reflow.
+- `--overwrite`: allow replacing existing Markdown files.
+
+## Running the GUI
 
 Launch the PyQt6 application:
 
@@ -74,7 +68,7 @@ or via the entry point:
 ragsmith-gui
 ```
 
-The GUI lets you pick PDFs, choose an output directory, select a backend, and toggle overwrite, reflow, and split options.
+The GUI lets you add PDFs, choose an output directory, pick a backend, and toggle overwrite, reflow, and splitting options. Progress is shown while conversions run.
 
 ## Library usage
 
@@ -96,5 +90,5 @@ app.convert_and_write([Path("paper.pdf")], output_dir=Path("./output"))
 ## Development
 
 - Run `python -m compileall ragsmith` to verify syntax.
-- Logging is configured via `ragsmith.logging_config.configure_logging` and uses the `RAGSMITH_LOG_LEVEL` environment variable when set.
+- Logging is configured via `ragsmith.logging_config.configure_logging` and honors the `RAGSMITH_LOG_LEVEL` environment variable when set.
 - Custom exceptions (`BackendNotAvailableError`, `BackendConversionError`, `OutputWriteError`) describe dependency or I/O issues.
