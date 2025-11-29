@@ -1,0 +1,15 @@
+# requirements.txt
+
+# GUI
+PyQt6
+
+# PDF -> Markdown backends
+markitdown
+pymupdf4llm
+pymupdf-layout
+
+# High level document conversion
+docling
+
+# Better HF model downloads (removes Xet warnings)
+huggingface_hub[hf_xet]
