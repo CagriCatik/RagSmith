@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from ragsmith.app import PdfMarkdownApp
 from ragsmith.config import RagSmithConfig

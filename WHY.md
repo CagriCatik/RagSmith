@@ -479,7 +479,15 @@ flowchart TD
 
 ---
 
-## 11. Conclusion
+## 11. Implementation checkpoints for RagSmith
+
+* **Layout-aware conversion already covered** by the Docling and PyMuPDF4LLM backends; keep MarkItDown as a fast fallback when layout libraries are missing.
+* **Normalization in code** should continue to strip boilerplate and collapse blank lines; the new paragraph merger fixes hyphenated line breaks so Markdown stays embedding-friendly.
+* **Structure-aware outputs** are produced either as a single Markdown file or split by `#` headings; keep heading text in the filename for traceable citations and add metadata (page range, section id) if you extend chunking.
+* **Guard rails for the CLI/GUI**: validate paths up front, refuse overwrites unless requested, and surface dependency errors early so ingestion jobs fail fast.
+* **Next hardening steps**: add golden-file tests for the cleaning pipeline (noise stripping, reflow, hyphen repair) and lightweight checks that each backend returns UTF-8 Markdown without trailing whitespace.
+
+## 12. Conclusion
 
 Controlled ingestion — converting PDFs into structured, normalized Markdown (or similar) and applying structure-aware chunking prior to embedding — is strongly supported by both practical implementations and empirical research. This strategy consistently yields higher retrieval accuracy, better grounding, lower hallucination risk, and improved interpretability. Direct PDF ingestion should be limited to quick prototypes or trivial documents; for any production-grade RAG system dealing with non-trivial PDFs (technical reports, scientific papers, mixed-content documents), a structured ingestion pipeline is effectively mandatory for high-quality results.
 

@@ -24,7 +24,16 @@ def _is_special_line(line: str) -> bool:
 
 def _merge_paragraph(lines: Iterable[str]) -> str:
     parts = [part.strip() for part in lines if part.strip()]
-    return " ".join(parts)
+    merged = ""
+    for part in parts:
+        if merged:
+            if merged.endswith("-") and re.match(r"^[A-Za-z0-9]", part):
+                merged = merged[:-1] + part
+            else:
+                merged = f"{merged} {part}"
+        else:
+            merged = part
+    return merged
 
 
 def reflow_markdown_paragraphs(text: str) -> str:
@@ -89,7 +98,7 @@ def process_for_rag(markdown_text: str, *, reflow: bool = True) -> str:
         cleaned = reflow_markdown_paragraphs(cleaned)
     else:
         cleaned = normalize_blank_lines(cleaned)
-    return cleaned
+    return normalize_blank_lines(cleaned)
 
 
 __all__ = ["reflow_markdown_paragraphs", "process_for_rag"]
