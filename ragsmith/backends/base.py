@@ -6,11 +6,12 @@ from pathlib import Path
 
 
 class PdfToMarkdownBackend(ABC):
-    """Abstract base class for conversion backends."""
+    """Abstract base class for PDF to Markdown converters."""
 
     @abstractmethod
     def convert(self, pdf_path: Path) -> str:
         """Convert the given PDF to Markdown."""
+        ...
 
 
 __all__ = ["PdfToMarkdownBackend"]

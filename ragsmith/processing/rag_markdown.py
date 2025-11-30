@@ -2,47 +2,55 @@
 from __future__ import annotations
 
 import re
-from typing import List
+from typing import Iterable, List
 
 from ragsmith.processing.cleaning import normalize_blank_lines, strip_noise_lines
 
 
-def _is_special_line(line: str) -> bool:
+def _is_list_line(line: str) -> bool:
     stripped = line.lstrip()
     return (
-        stripped.startswith("#")
-        or stripped.startswith("- ")
+        stripped.startswith("- ")
         or stripped.startswith("* ")
         or stripped.startswith("+ ")
         or re.match(r"\d+\.\s", stripped) is not None
-        or stripped.startswith(">")
     )
+
+
+def _is_special_line(line: str) -> bool:
+    stripped = line.lstrip()
+    return stripped.startswith("#") or _is_list_line(line) or stripped.startswith(">")
+
+
+def _merge_paragraph(lines: Iterable[str]) -> str:
+    parts = [part.strip() for part in lines if part.strip()]
+    return " ".join(parts)
 
 
 def reflow_markdown_paragraphs(text: str) -> str:
     """Merge wrapped paragraphs while preserving block structures and code fences."""
+
     lines = text.splitlines()
     output: List[str] = []
     paragraph: List[str] = []
     in_code_block = False
 
     def flush_paragraph() -> None:
-        nonlocal paragraph
         if paragraph:
-            merged = " ".join(part.strip() for part in paragraph if part.strip())
-            output.append(merged)
-            paragraph = []
+            output.append(_merge_paragraph(paragraph))
+            paragraph.clear()
 
     for line in lines:
         stripped = line.strip()
+
         if stripped.startswith("```"):
             flush_paragraph()
             in_code_block = not in_code_block
-            output.append(line)
+            output.append(line.rstrip())
             continue
 
         if in_code_block:
-            output.append(line)
+            output.append(line.rstrip())
             continue
 
         if stripped == "":
@@ -59,7 +67,9 @@ def reflow_markdown_paragraphs(text: str) -> str:
         paragraph.append(line)
 
     flush_paragraph()
-    cleaned = []
+
+    # Collapse blank lines to at most two
+    cleaned: List[str] = []
     blank_count = 0
     for line in output:
         if line.strip() == "":
@@ -69,7 +79,8 @@ def reflow_markdown_paragraphs(text: str) -> str:
         else:
             blank_count = 0
             cleaned.append(line)
-    return "\n".join(cleaned).strip() + "\n"
+
+    return "\n".join(cleaned).strip()
 
 
 def process_for_rag(markdown_text: str, *, reflow: bool = True) -> str:

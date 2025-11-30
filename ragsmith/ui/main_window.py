@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
 
 from ragsmith.app import PdfMarkdownApp
 from ragsmith.config import RagSmithConfig
-from ragsmith.errors import BackendNotAvailableError, OutputWriteError
+from ragsmith.errors import BackendNotAvailableError, OutputWriteError, BackendConversionError, format_exception_chain
 from ragsmith.logging_config import configure_logging
 
 
@@ -92,11 +92,16 @@ class MainWindow(QMainWindow):
 
         # Progress and actions
         self.progress = QProgressBar()
+        self.progress.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.progress, 8, 0, 1, 3)
+
+        self.status_label = QLabel("Ready")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status_label, 9, 0, 1, 3)
 
         convert_btn = QPushButton("Convert")
         convert_btn.clicked.connect(self.convert_files)
-        layout.addWidget(convert_btn, 9, 0, 1, 3)
+        layout.addWidget(convert_btn, 10, 0, 1, 3)
 
         self.setCentralWidget(central)
 
@@ -128,6 +133,9 @@ class MainWindow(QMainWindow):
             overwrite=self.overwrite_checkbox.isChecked(),
         )
 
+    def _set_status(self, message: str) -> None:
+        self.status_label.setText(message)
+
     def convert_files(self) -> None:
         paths = self._collect_paths()
         if not paths:
@@ -146,16 +154,22 @@ class MainWindow(QMainWindow):
 
         self.progress.setRange(0, len(paths))
         self.progress.setValue(0)
+        self._set_status("Working…")
 
         try:
             for index, path in enumerate(paths, start=1):
-                self.app.convert_and_write([path], output_dir=output_dir)
+                results = self.app.convert_and_write([path], output_dir=output_dir)
+                created = results.get(path, [])
                 self.progress.setValue(index)
+                self._set_status(f"Wrote {len(created)} file(s) for {path.name}")
             QMessageBox.information(self, "Done", "Conversion completed successfully.")
-        except OutputWriteError as exc:
-            QMessageBox.critical(self, "Write error", str(exc))
+            self._set_status("Completed")
+        except (OutputWriteError, BackendConversionError) as exc:
+            QMessageBox.critical(self, "Conversion error", format_exception_chain(exc))
+            self._set_status("Error")
         except Exception as exc:  # pragma: no cover - GUI safety
-            QMessageBox.critical(self, "Unexpected error", str(exc))
+            QMessageBox.critical(self, "Unexpected error", format_exception_chain(exc))
+            self._set_status("Error")
 
 
 if __name__ == "__main__":
