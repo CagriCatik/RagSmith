@@ -25,7 +25,7 @@ class PdfMarkdownApp:
         config: RagSmithConfig | None = None,
         *,
         logger: logging.Logger | None = None,
-        pymupdf_fallback_to_markitdown: bool = False,
+        pymupdf_fallback_to_markitdown: bool = True,
         docling_device: Literal["auto", "cpu", "cuda", "mps"] = "auto",
     ) -> None:
         self.config = config or RagSmithConfig()
@@ -46,7 +46,9 @@ class PdfMarkdownApp:
     ):
         factories = {
             "markitdown": lambda: MarkitdownBackend(),
-            "pymupdf4llm": lambda: PyMuPDFBackend(fallback_to_markitdown=pymupdf_fallback_to_markitdown),
+            "pymupdf4llm": lambda: PyMuPDFBackend(
+                fallback_to_markitdown=pymupdf_fallback_to_markitdown
+            ),
             "docling": lambda: DoclingBackend(device=docling_device),
         }
         factory = factories.get(name)
