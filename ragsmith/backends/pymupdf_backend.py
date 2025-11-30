@@ -31,7 +31,7 @@ class PyMuPDFBackend(PdfToMarkdownBackend):
             return self._impl.to_markdown(pdf_path)
         except ValueError as exc:
             message = str(exc)
-            if "min() arg is an empty sequence" in message or "min() iterable argument is empty" in message:
+            if self._is_layout_bug(message):
                 if self._fallback_to_markitdown:
                     LOGGER.warning(
                         "Encountered layout bug; falling back to markitdown backend",
@@ -55,6 +55,16 @@ class PyMuPDFBackend(PdfToMarkdownBackend):
         except Exception as exc:  # pragma: no cover - external library behaviour
             LOGGER.exception("pymupdf4llm failed for %s", pdf_path)
             raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}: {exc}") from exc
+
+    @staticmethod
+    def _is_layout_bug(message: str) -> bool:
+        lowered = message.lower()
+        known_signatures = [
+            "min() arg is an empty sequence",
+            "min() iterable argument is empty",
+            "min() argument is empty",
+        ]
+        return any(signature in lowered for signature in known_signatures)
 
     def _fallback_convert_with_markitdown(self, pdf_path: Path) -> str:
         try:
