@@ -77,7 +77,10 @@ class DoclingBackend(PdfToMarkdownBackend):
             document = result.document
             if hasattr(document, "as_markdown"):
                 return document.as_markdown()
-            return "".join(page.to_markdown() for page in document.pages)
+
+            pages = document.pages
+            page_iter = pages.values() if isinstance(pages, dict) else pages
+            return "".join(page.to_markdown() for page in page_iter)
         except BackendNotAvailableError:
             raise
         except Exception as exc:  # pragma: no cover - docling runtime issues
