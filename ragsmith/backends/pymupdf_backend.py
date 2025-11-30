@@ -14,7 +14,7 @@ LOGGER = logging.getLogger("ragsmith.backends.pymupdf")
 class PyMuPDFBackend(PdfToMarkdownBackend):
     """Backend using ``pymupdf4llm`` with optional layout support."""
 
-    def __init__(self, *, enable_layout: bool = True, fallback_to_markitdown: bool = False) -> None:
+    def __init__(self, *, enable_layout: bool = True, fallback_to_markitdown: bool = True) -> None:
         if util.find_spec("pymupdf4llm") is None:
             raise BackendNotAvailableError("pymupdf4llm is not installed")
 
@@ -36,7 +36,17 @@ class PyMuPDFBackend(PdfToMarkdownBackend):
                     LOGGER.warning(
                         "Encountered layout bug; falling back to markitdown backend",
                     )
-                    return self._fallback_convert_with_markitdown(pdf_path)
+                    try:
+                        return self._fallback_convert_with_markitdown(pdf_path)
+                    except BackendConversionError:
+                        raise
+                    except Exception as fallback_exc:  # pragma: no cover - fallback failures vary
+                        LOGGER.exception(
+                            "Fallback to markitdown failed for %s", pdf_path
+                        )
+                        raise BackendConversionError(
+                            f"pymupdf4llm layout bug encountered for {pdf_path}"
+                        ) from fallback_exc
                 raise BackendConversionError(
                     f"pymupdf4llm layout bug encountered for {pdf_path}"
                 ) from exc
