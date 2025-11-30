@@ -1,42 +1,59 @@
-## A Compact Guide to Retrieval Augmented Generation (RAG)
+# A Compact Guide to Retrieval Augmented Generation (RAG)
 
 Definitions, components and basics for practitioners
 
 ## Contents
 
-| Introduction: Retrieval Augmented Generation (RAG) With Vector Search ..................................................................3                                                                                                                                                             |                                                                                                                                                                                                                                                                                                                      |
-| LLMs and prompts ...................................................................................................................................................................................................................................................................................5 |                                                                                                                                                                                                                                                                                                                      |
-| Vector Search and embedding models                                                                                                                                                                                                                                                                    | ..................................................................................................................................................................................................................................6                                                                                  |
-| Asking RAG About Databricks Asset Bundles (DABs) ..................................................................................................................                                                                                                                                   | 8                                                                                                                                                                                                                                                                                                                    |
-| Asking an LLM without RAG about DABs                                                                                                                                                                                                                                                                  | ................................................................................................................................................................................................................................8                                                                                    |
-| Using RAG to give an LLM access to documentation about DABs                                                                                                                                                                                                                                           | ...................................................................................................................................................................10                                                                                                                                                |
-| Addressing the Shortcomings of LLMs With RAG ..........................................................................................................................                                                                                                                               | 11                                                                                                                                                                                                                                                                                                                   |
-| RAG compared to LLM-only approaches                                                                                                                                                                                                                                                                   | .............................................................................................................................................................................................................................12                                                                                      |
-| RAG Use Cases ...................................................................................................................................................................................................                                                                                     | 14                                                                                                                                                                                                                                                                                                                   |
-| Question-answering systems ......................................................................................................................................................................................................................................................                     | 14                                                                                                                                                                                                                                                                                                                   |
-| Customer service                                                                                                                                                                                                                                                                                      | .................................................................................................................................................................................................................................................................................. 14                                |
-| Content generation                                                                                                                                                                                                                                                                                    | .............................................................................................................................................................................................................................................................................. 14                                    |
-| Code assistance ..................................................................................................................................................................................................................................................................................... | 14                                                                                                                                                                                                                                                                                                                   |
-| RAG With Vector Search -Step by Step ...........................................................................................................................................                                                                                                                      | 15                                                                                                                                                                                                                                                                                                                   |
-| Data preparation: Getting an external information source into a                                                                                                                                                                                                                                       | vector database ......................................................................................................................... 15                                                                                                                                                                         |
-| Retrieval: Getting relevant context                                                                                                                                                                                                                                                                   | ........................................................................................................................................................................................................................................19                                                                           |
-| Augmentation: Adding context to the user's prompt .............................................................................................................................................................................................23                                                     |                                                                                                                                                                                                                                                                                                                      |
-| Generation: Producing useful output with an LLM ....................................................................................................................................................................................................                                                  | 27                                                                                                                                                                                                                                                                                                                   |
-| Evaluation: Measuring RAG performance                                                                                                                                                                                                                                                                 | .........................................................................................................................................................................................................................30                                                                                          |
-| Utilizing RAG With Other Modeling and Model Customization Methods ........................................................................                                                                                                                                                            | 31                                                                                                                                                                                                                                                                                                                   |
-| Prompt engineering                                                                                                                                                                                                                                                                                    | ............................................................................................................................................................................................................................................................................. 31                                     |
-| Fine-tuning                                                                                                                                                                                                                                                                                           | ...............................................................................................................................................................................................................................................................................................32                    |
-| Pretraining                                                                                                                                                                                                                                                                                           | .................................................................................................................................................................................................................................................................................................33                  |
-| Combinations of methods                                                                                                                                                                                                                                                                               | ............................................................................................................................................................................................................................................................34                                                       |
-| RAG on Databricks                                                                                                                                                                                                                                                                                     | ......................................................................................................................................................................................... 35                                                                                                                         |
-| Lakehouse architecture                                                                                                                                                                                                                                                                                | ..................................................................................................................................................................................................................................................................35                                                 |
-| Vector Search                                                                                                                                                                                                                                                                                         | .........................................................................................................................................................................................................................................................................................35                          |
-| Model serving                                                                                                                                                                                                                                                                                         | ..........................................................................................................................................................................................................................................................................................35                         |
-| MLflow                                                                                                                                                                                                                                                                                                | ...........................................................................................................................................................................................................................................................................................................36        |
-| Lakehouse Monitoring                                                                                                                                                                                                                                                                                  | ......................................................................................................................................................................................................................................................................36                                             |
-| Summary ..............................................................................................................................................................................................................                                                                                | 37                                                                                                                                                                                                                                                                                                                   |
-| GenAI training                                                                                                                                                                                                                                                                                        | ..........................................................................................................................................................................................................................................................................................37                         |
-| Additional resources                                                                                                                                                                                                                                                                                  | ..........................................................................................................................................................................................................................................................................37                                         |
+## 1. Introduction
+
+1.1 Retrieval Augmented Generation (RAG) With Vector Search
+1.2 LLMs and Prompts
+1.3 Vector Search and Embedding Models
+
+## 2. RAG Applied to Databricks Asset Bundles (DABs)
+
+2.1 Asking RAG About Databricks Asset Bundles (DABs)
+2.2 Asking an LLM Without RAG About DABs
+2.3 Using RAG to Give an LLM Access to Documentation About DABs
+2.4 Addressing the Shortcomings of LLMs With RAG
+2.5 RAG Compared to LLM-only Approaches
+
+## 3. RAG Use Cases
+
+3.1 Question-Answering Systems
+3.2 Customer Service
+3.3 Content Generation
+3.4 Code Assistance
+
+## 4. RAG With Vector Search: Step by Step
+
+4.1 Data Preparation: Loading External Information Into a Vector Database
+4.2 Retrieval: Obtaining Relevant Context
+4.3 Augmentation: Adding Retrieved Context to the User Prompt
+4.4 Generation: Producing Useful Output With an LLM
+4.5 Evaluation: Measuring RAG Performance
+
+## 5. Combining RAG With Other Modeling and Customization Methods
+
+5.1 Prompt Engineering
+5.2 Fine-Tuning
+5.3 Pretraining
+5.4 Hybrid and Combined Methods
+
+## 6. RAG on Databricks
+
+6.1 Lakehouse Architecture
+6.2 Vector Search
+6.3 Model Serving
+6.4 MLflow
+6.5 Lakehouse Monitoring
+
+## 7. Summary
+
+## 8. GenAI Training
+
+## 9. Additional Resources
+
 
 ## Retrieval Augmented Generation (RAG) With Vector Search Introduction
 
@@ -105,12 +122,12 @@ In this example, the model just guessed, stating incorrectly that DAB stands for
 
 Let's try another question.
 
-| 1     | User: What version of the databricks CLI do I need in order to use Databricks Asset Bundles?                                                                                                                                                       |
-| 2 3   | Bot: To use Databricks Asset Bundles, you need to have a Databricks CLI version that is greater than or equal to 1.10.0.                                                                                                                           |
-| 4 5   | You can check your current version of the Databricks CLI by running the command `databricks --version` in your terminal or command prompt.                                                                                                         |
+| 1  | User: What version of the databricks CLI do I need in order to use Databricks Asset Bundles?  |
+| 2 3| Bot: To use Databricks Asset Bundles, you need to have a Databricks CLI version that is greater than or equal to 1.10.0.|
+| 4 5| You can check your current version of the Databricks CLI by running the command `databricks --version` in your terminal or command prompt.  |
 | 6 7 8 | If you have an older version of the Databricks CLI installed, you can upgrade to the latest version by running the command `pip install --upgrade databricks-cli` (for Python 3) or `pip install --upgrade databricks-cli<=1.10.0` (for Python 2). |
-| 9 10  | Alternatively, you can download the latest version of the Databricks CLI from the Databricks website and install it manually.                                                                                                                      |
-| 11 12 | Once you have installed the required version of the Databricks CLI, you can use the `databricks assets` command to manage Databricks Asset Bundles.                                                                                                |
+| 9 10  | Alternatively, you can download the latest version of the Databricks CLI from the Databricks website and install it manually. |
+| 11 12 | Once you have installed the required version of the Databricks CLI, you can use the `databricks assets` command to manage Databricks Asset Bundles.|
 
 Databricks CLI version 1.10.0 doesn't exist and isn't the correct answer. Furthermore, there is no databricks assets command. In both cases, the model hallucinated an answer.
 
@@ -124,21 +141,21 @@ Now when we ask our question, the RAG application queries the vector database an
 
 Here are the new results.
 
-|   1 | User: What are databricks DABs?                                                                                      |
-|   2 | Bot: According to the provided context, Databricks Asset Bundles (DABs) are a tool for streamlining the development  |
-|   3 | of complex data, analytics, and machine learning (ML) projects on the Databricks platform. They provide a way to     |
-|   4 | manage complex projects during active development by offering CI/CD capabilities to software development workflows   |
-|   5 | in a single, concise, and declarative YAML syntax. DABs allow users to automate project tests, deployments, and      |
-|   6 | configuration management, which can reduce errors and promote software best practices across an organization through |
-|   7 | templated projects.                                                                                                  |
+|1 | User: What are databricks DABs? |
+|2 | Bot: According to the provided context, Databricks Asset Bundles (DABs) are a tool for streamlining the development  |
+|3 | of complex data, analytics, and machine learning (ML) projects on the Databricks platform. They provide a way to  |
+|4 | manage complex projects during active development by offering CI/CD capabilities to software development workflows|
+|5 | in a single, concise, and declarative YAML syntax. DABs allow users to automate project tests, deployments, and|
+|6 | configuration management, which can reduce errors and promote software best practices across an organization through |
+|7 | templated projects.  |
 
-|   1 | User: What version of the databricks CLI do I need in order to use Databricks Asset Bundles?                         |
-|   2 | Bot: Databricks CLI version 0.205 or higher is required for Databricks Asset Bundles. You can confirm the version by |
-|   3 | running the command 'databricks --version' in your terminal. Note that version 0.205.2 or higher is required. If you |
-|   4 | haven't installed the Databricks CLI yet, you can install it by following the instructions in the Install or update  |
-|   5 | the Databricks CLI documentation. Additionally, make sure that your remote Databricks workspaces are configured      |
-|   6 | correctly, specifically that the workspace files feature is enabled, which is the case by default for Databricks     |
-|   7 | Runtime version 11.2 or later.                                                                                       |
+|1 | User: What version of the databricks CLI do I need in order to use Databricks Asset Bundles? |
+|2 | Bot: Databricks CLI version 0.205 or higher is required for Databricks Asset Bundles. You can confirm the version by |
+|3 | running the command 'databricks --version' in your terminal. Note that version 0.205.2 or higher is required. If you |
+|4 | haven't installed the Databricks CLI yet, you can install it by following the instructions in the Install or update  |
+|5 | the Databricks CLI documentation. Additionally, make sure that your remote Databricks workspaces are configured|
+|6 | correctly, specifically that the workspace files feature is enabled, which is the case by default for Databricks  |
+|7 | Runtime version 11.2 or later.|
 
 In both cases, the model generated correct answers because it was given access to the information it needed. Without RAG, the best the LLM could do was guess or admit it didn't know. With RAG, the LLM provided the correct answers.
 
@@ -268,9 +285,9 @@ All the information we need about Databricks Asset Bundles is now available in t
 1. Embed the prompt. We use the same embedding model we used to embed the original document chunks to embed the query, and once again the result is a 1024-dimensional vector. So if we start with the prompt 'What are Databricks Asset Bundles?,' we end up with the embedding:
 2. Use the embedding to search the vector database. We use the built-in similarity\_search method of Databricks Vector Search to query the vector database with the embedded prompt. We specify that we want it to return the stored text and that we want the two most relevant results. From this, the database returns:
 
-| 1 2 3 4 5 6   | [0.006649017333984375, 0.029144287109375, 0.0001398324966430664, 0.00481414794921875, -0.006526947021484375, 0.029571533203125, -0.031982421875, 0.01082611083984375, 0.0025653839111328125, -0.013031005859375, 0.054931640625, -0.049224853515625, -8.767843246459961e-05, 0.03131103515625, -0.022613525390625, 0.0148162841796875, -0.052520751953125, 0.003780364990234375, 0.0279998779296875, 0.018585205078125, -0.081787109375, -0.030731201171875, -0.0236053466796875, 0.0357666015625, 0.03387451171875, 0.0335693359375, ...,   |
-|               | -0.00818634033203125, 0.01155853271484375,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| 7             | 0.0260467529296875, -0.0013675689697265625, 0.032318115234375, -0.002666473388671875, 0.0269012451171875, 0.0616455078125]                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 1 2 3 4 5 6| [0.006649017333984375, 0.029144287109375, 0.0001398324966430664, 0.00481414794921875, -0.006526947021484375, 0.029571533203125, -0.031982421875, 0.01082611083984375, 0.0025653839111328125, -0.013031005859375, 0.054931640625, -0.049224853515625, -8.767843246459961e-05, 0.03131103515625, -0.022613525390625, 0.0148162841796875, -0.052520751953125, 0.003780364990234375, 0.0279998779296875, 0.018585205078125, -0.081787109375, -0.030731201171875, -0.0236053466796875, 0.0357666015625, 0.03387451171875, 0.0335693359375, ...,|
+| | -0.00818634033203125, 0.01155853271484375,|
+| 7 | 0.0260467529296875, -0.0013675689697265625, 0.032318115234375, -0.002666473388671875, 0.0269012451171875, 0.0616455078125]  |
 
 - 1 [ 'What are Databricks Asset Bundles?\nJanuary 08, 2024\n\nIn this article you will learn the basics of using
 - 2 Databricks Asset Bundles, a new tool for streamlining the development of complex data, analytics, and ML projects for
@@ -315,21 +332,21 @@ Some LLMs boast longer context windows, capable of handling texts as lengthy as 
 
 Our question for the RAG application was 'What are Databricks Asset Bundles?' and we retrieved the following two chunks for context:
 
-|   1 | [ 'What are Databricks Asset Bundles?\nJanuary 08, 2024\n\nIn this article you will learn the basics of using            |
-|   2 | Databricks Asset Bundles, a new tool for streamlining the development of complex data, analytics, and ML projects for    |
-|   3 | the Databricks platform. Bundles make it easy to manage complex projects during active development by providing CI/CD    |
-|   4 | capabilities to your software development workflow in a single concise and declarative YAML syntax. By using bundles     |
-|   5 | to automate your project ' s tests, deployments, and configuration management you can reduce errors while promoting      |
-|   6 | software best practices across your organization as templated projects. \n\nPreview\n\nThis feature is in Public         |
-|   7 | Preview. \n\nBundles provide a way to include metadata alongside your project ' s source files to specify information    |
-|   8 | including:\n\nRequired cloud infrastructure and workspace configurations. \n\nUnit and integration tests. ' ,            |
-|   9 | 'Databricks Assets Bundles are an infrastructure-as-code (IaC) approach to managing your Databricks projects.            |
-|  10 | Use them when you want to manage complex projects where multiple contributors and automation are essential, and          |
-|  11 | continuous integration and deployment (CI/CD) are a requirement. Since bundles are defined and managed through           |
-|  12 | YAML templates and files you create and maintain alongside source code, they map well to scenarios where IaC is an       |
-|  13 | appropriate approach. \n\nSome ideal scenarios for bundles include:\n\nDevelop data, analytics, and ML projects in       |
-|  14 | a team-based environment. Bundles can help you organize and manage various source files efficiently. This ensures        |
-|  15 | smooth collaboration and streamlined processes. \n\nIterate on ML problems faster. Manage ML pipeline resources (such    |
+|1 | [ 'What are Databricks Asset Bundles?\nJanuary 08, 2024\n\nIn this article you will learn the basics of using|
+|2 | Databricks Asset Bundles, a new tool for streamlining the development of complex data, analytics, and ML projects for |
+|3 | the Databricks platform. Bundles make it easy to manage complex projects during active development by providing CI/CD |
+|4 | capabilities to your software development workflow in a single concise and declarative YAML syntax. By using bundles  |
+|5 | to automate your project ' s tests, deployments, and configuration management you can reduce errors while promoting|
+|6 | software best practices across your organization as templated projects. \n\nPreview\n\nThis feature is in Public|
+|7 | Preview. \n\nBundles provide a way to include metadata alongside your project ' s source files to specify information |
+|8 | including:\n\nRequired cloud infrastructure and workspace configurations. \n\nUnit and integration tests. ' ,|
+|9 | 'Databricks Assets Bundles are an infrastructure-as-code (IaC) approach to managing your Databricks projects.|
+|  10 | Use them when you want to manage complex projects where multiple contributors and automation are essential, and |
+|  11 | continuous integration and deployment (CI/CD) are a requirement. Since bundles are defined and managed through  |
+|  12 | YAML templates and files you create and maintain alongside source code, they map well to scenarios where IaC is an |
+|  13 | appropriate approach. \n\nSome ideal scenarios for bundles include:\n\nDevelop data, analytics, and ML projects in |
+|  14 | a team-based environment. Bundles can help you organize and manage various source files efficiently. This ensures  |
+|  15 | smooth collaboration and streamlined processes. \n\nIterate on ML problems faster. Manage ML pipeline resources (such |
 |  16 | as training and batch inference jobs) by using ML projects that follow production best practices from the beginning. ' ] |
 
 We use these and some more general instructions to construct the final prompt we send to the model:
@@ -392,7 +409,7 @@ Fine-tuning is the process of adapting a pretrained generative model to a new do
 
 The cost and complexity of this process can vary greatly, depending on factors such as the size of the model, the quantity and specificity of the training data and the nature of the task. Fine-tuning can sometimes be used to reduce costs. A smaller model fine-tuned on a specific task can replace a larger and more expensive generalist model.
 
-## FINE-TUNING AND RAG
+## Fine-tuning and RAG
 
 While RAG excels in enhancing a model's responses with additional, relevant information, it doesn't fundamentally change the model's behavior or linguistic style. Any limitations or quirks of the base model will still be present in a RAG system, while fine-tuning can durably change the model's behavior in ways that are less constrained by the base model's behavior.
 
