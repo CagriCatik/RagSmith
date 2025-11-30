@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("pdf_files", nargs="+", type=Path, help="Input PDF files")
     parser.add_argument(
         "--backend",
-        choices=["markitdown", "pymupdf4llm", "docling"],
+        choices=["markitdown", "pymupdf4llm", "docling", "ocr"],
         default=RagSmithConfig().backend,
         help="Conversion backend",
     )

@@ -7,6 +7,9 @@ PyQt6
 markitdown
 pymupdf4llm
 pymupdf-layout
+pytesseract
+pdf2image
+Pillow
 
 # High level document conversion
 docling

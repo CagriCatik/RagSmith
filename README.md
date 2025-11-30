@@ -56,7 +56,7 @@ README.md
 
 ## Features
 
-- Multiple PDF→Markdown backends: Docling (GPU-aware), PyMuPDF4LLM, and MarkItDown.
+- Multiple PDF→Markdown backends: Docling (GPU-aware), PyMuPDF4LLM, MarkItDown, and OCR (Tesseract-based) for image-only PDFs.
 - Cleaning pipeline removing headers, footers, boilerplate, and repeated page markers.
 - Optional paragraph reflow that preserves Markdown structure.
 - Optional splitting into top-level sections for RAG chunking workflows.
@@ -78,6 +78,12 @@ pip install -e .
 
 For Docling GPU acceleration, install a CUDA-enabled torch build and choose the "cuda" device when configuring the Docling backend.
 
+For the OCR backend install the extra dependencies and system tools:
+
+- Python: `pytesseract`, `pdf2image`, and `Pillow` (included in `requirements.txt`).
+- System: Tesseract binaries and Poppler utilities (`apt install tesseract-ocr poppler-utils` on Debian/Ubuntu, `brew install tesseract poppler` on macOS).
+- Optional: set the `TESSDATA_PREFIX` environment variable if your Tesseract data files live in a non-default location.
+
 ---
 
 ## CLI usage
@@ -95,7 +101,7 @@ python -m ragsmith.cli.main \
 
 Common options:
 
-- `--backend {markitdown,pymupdf4llm,docling}` select backend.
+- `--backend {markitdown,pymupdf4llm,docling,ocr}` select backend.
 - `--output-dir PATH` directory for generated Markdown.
 - `--split-sections` produce one Markdown file per top-level heading.
 - `--reflow` enable structural paragraph reflow.

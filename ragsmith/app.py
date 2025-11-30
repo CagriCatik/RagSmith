@@ -7,6 +7,7 @@ from typing import Dict, Iterable, List, Literal, Sequence
 
 from ragsmith.backends.docling_backend import DoclingBackend
 from ragsmith.backends.markitdown_backend import MarkitdownBackend
+from ragsmith.backends.ocr_backend import OCRBackend
 from ragsmith.backends.pymupdf_backend import PyMuPDFBackend
 from ragsmith.config import RagSmithConfig
 from ragsmith.errors import BackendConversionError, BackendNotAvailableError, OutputWriteError
@@ -14,7 +15,7 @@ from ragsmith.logging_config import get_logger
 from ragsmith.processing.rag_markdown import process_for_rag
 from ragsmith.processing.splitting import split_by_top_level_headings, slugify
 
-BackendName = Literal["markitdown", "pymupdf4llm", "docling"]
+BackendName = Literal["markitdown", "pymupdf4llm", "docling", "ocr"]
 
 
 class PdfMarkdownApp:
@@ -27,6 +28,8 @@ class PdfMarkdownApp:
         logger: logging.Logger | None = None,
         pymupdf_fallback_to_markitdown: bool = True,
         docling_device: Literal["auto", "cpu", "cuda", "mps"] = "auto",
+        ocr_lang: str = "eng",
+        ocr_dpi: int = 300,
     ) -> None:
         self.config = config or RagSmithConfig()
         self.logger = logger or get_logger("ragsmith")
@@ -34,6 +37,8 @@ class PdfMarkdownApp:
             self.config.backend,
             pymupdf_fallback_to_markitdown=pymupdf_fallback_to_markitdown,
             docling_device=docling_device,
+            ocr_lang=ocr_lang,
+            ocr_dpi=ocr_dpi,
         )
         self.logger.debug("Initialized PdfMarkdownApp with config: %s", self.config)
 
@@ -43,6 +48,8 @@ class PdfMarkdownApp:
         *,
         pymupdf_fallback_to_markitdown: bool,
         docling_device: Literal["auto", "cpu", "cuda", "mps"],
+        ocr_lang: str,
+        ocr_dpi: int,
     ):
         factories = {
             "markitdown": lambda: MarkitdownBackend(),
@@ -50,6 +57,7 @@ class PdfMarkdownApp:
                 fallback_to_markitdown=pymupdf_fallback_to_markitdown
             ),
             "docling": lambda: DoclingBackend(device=docling_device),
+            "ocr": lambda: OCRBackend(lang=ocr_lang, dpi=ocr_dpi),
         }
         factory = factories.get(name)
         if factory is None:
