@@ -62,6 +62,26 @@ class DoclingBackend(PdfToMarkdownBackend):
         pipeline_opts = self._pipeline_mod.PdfPipelineOptions(accelerator=accelerator)
         return accelerator, pipeline_opts
 
+    def _export_markdown(self, document: object) -> str:
+        export = getattr(document, "export_to_markdown", None)
+        if callable(export):
+            return export()
+
+        pages = getattr(document, "pages", None)
+        if pages is None:
+            raise BackendConversionError("docling document does not expose pages or markdown export")
+
+        page_iter = pages.values() if isinstance(pages, dict) else pages
+        markdown_parts = []
+        for page in page_iter:
+            export_page = getattr(page, "export_to_markdown", None) or getattr(page, "to_markdown", None)
+            if not callable(export_page):
+                raise BackendConversionError(
+                    "docling returned page items without a markdown export method",
+                )
+            markdown_parts.append(export_page())
+        return "".join(markdown_parts)
+
     def convert(self, pdf_path: Path) -> str:
         accelerator, pipeline_opts = self._build_options()
         converter = self._converter_mod.DocumentConverter(
@@ -78,10 +98,10 @@ class DoclingBackend(PdfToMarkdownBackend):
             if hasattr(document, "as_markdown"):
                 return document.as_markdown()
 
-            pages = document.pages
-            page_iter = pages.values() if isinstance(pages, dict) else pages
-            return "".join(page.to_markdown() for page in page_iter)
+            return self._export_markdown(document)
         except BackendNotAvailableError:
+            raise
+        except BackendConversionError:
             raise
         except Exception as exc:  # pragma: no cover - docling runtime issues
             LOGGER.exception("Docling conversion failed for %s", pdf_path)
