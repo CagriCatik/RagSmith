@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragsmith"
+version = "0.1.0"
+description = "PDF to Markdown to RAG pipeline with CLI and PyQt6 GUI"
+authors = [{ name = "RagSmith" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+gui = ["PyQt6"]
+
+[project.scripts]
+ragsmith-cli = "ragsmith.cli.main:main"
+ragsmith-gui = "ragsmith.ui.application:run"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ragsmith*",]
