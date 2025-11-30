@@ -4,58 +4,6 @@ A Compact Guide to Retrieval Augmented Generation (RAG) Definitions, components 
 
 Contents
 
-Introduction: Retrieval Augmented Generation (RAG) With Vector Search .................................................................. 3 LLMs and prompts ................................................................................................................................................................................................................................................................................... 5
-
-Vector Search and embedding models ..................................................................................................................................................................................................................................6
-
-Asking RAG About Databricks Asset Bundles (DABs) .................................................................................................................. 8 Asking an LLM without RAG about DABs ................................................................................................................................................................................................................................ 8
-
-Using RAG to give an LLM access to documentation about DABs ...................................................................................................................................................................10
-
-Addressing the Shortcomings of LLMs With RAG .......................................................................................................................... 11 RAG compared to LLM-only approaches .............................................................................................................................................................................................................................12
-
-RAG Use Cases ................................................................................................................................................................................................... 14 Question-answering systems ...................................................................................................................................................................................................................................................... 14
-
-Customer service .................................................................................................................................................................................................................................................................................. 14
-
-Content generation .............................................................................................................................................................................................................................................................................. 14
-
-Code assistance ..................................................................................................................................................................................................................................................................................... 14
-
-RAG With Vector Search — Step by Step ........................................................................................................................................... 15 Data preparation: Getting an external information source into a vector database ......................................................................................................................... 15
-
-Retrieval: Getting relevant context  ........................................................................................................................................................................................................................................ 19
-
-Augmentation: Adding context to the user’s prompt  ............................................................................................................................................................................................. 23
-
-Generation: Producing useful output with an LLM  .................................................................................................................................................................................................... 27
-
-Evaluation: Measuring RAG performance  .........................................................................................................................................................................................................................30
-
-Utilizing RAG With Other Modeling and Model Customization Methods ........................................................................ 31 Prompt engineering .............................................................................................................................................................................................................................................................................  31
-
-Fine-tuning  ............................................................................................................................................................................................................................................................................................... 32
-
-Pretraining  ................................................................................................................................................................................................................................................................................................. 33
-
-RAG  .................................................................................................................................................................................................................................................................................................................. 33
-
-Combinations of methods  ............................................................................................................................................................................................................................................................ 34
-
-RAG on Databricks ......................................................................................................................................................................................... 35 Lakehouse architecture .................................................................................................................................................................................................................................................................. 35
-
-Vector Search  ......................................................................................................................................................................................................................................................................................... 35
-
-Model serving .......................................................................................................................................................................................................................................................................................... 35
-
-MLflow  ........................................................................................................................................................................................................................................................................................................... 36
-
-Lakehouse Monitoring  ...................................................................................................................................................................................................................................................................... 36
-
-Summary .............................................................................................................................................................................................................. 37 GenAI training .......................................................................................................................................................................................................................................................................................... 37
-
-Additional resources .......................................................................................................................................................................................................................................................................... 37
-
 Introduction
 
 Retrieval Augmented Generation (RAG) With Vector Search
@@ -576,8 +524,6 @@ translated to:
 
 -0.09027099609375, -0.0207977294921875, -0.048736572265625, 0.07818603515625, 0.0648193359375,
 
-...
-
 -0.01076507568359375, 0.0123443603515625, -0.016693115234375, 0.0243377685546875, 0.0244903564453125]
 
 3. Once both documents are split into chunks and embedded, we use Databricks Vector Search to store
@@ -698,8 +644,6 @@ the prompt “What are Databricks Asset Bundles?,” we end up with the embeddin
 
 -0.030731201171875, -0.0236053466796875, 0.0357666015625, 0.03387451171875, 0.0335693359375,
 
-...,
-
 0.0260467529296875, -0.0013675689697265625, 0.032318115234375, -0.002666473388671875, 0.0269012451171875, 0.0616455078125]
 
 2. Use the embedding to search the vector database. We use the built-in similarity_search method
@@ -716,9 +660,15 @@ Databricks Asset Bundles, a new tool for streamlining the development of complex
 
 the Databricks platform. Bundles make it easy to manage complex projects during active development by providing CI/CD
 
-capabilities to your software development workflow in a single concise and declarative YAML syntax. By using bundles to automate your project's tests, deployments, and configuration management you can reduce errors while promoting software best practices across your organization as templated projects.\n\nPreview\n\nThis feature is in Public Preview.\n\nBundles provide a way to include metadata alongside your project's source files to specify information including:\n\nRequired cloud infrastructure and workspace configurations.\n\nUnit and integration tests.',
+capabilities to your software development workflow in a single concise and declarative YAML syntax.
+By using bundles to automate your project's tests, deployments, and configuration management
+you can reduce errors while promoting software best practices across your organization as templated projects.
+\n\nPreview\n\nThis feature is in Public Preview.\n\nBundles provide a way to include metadata alongside your project's
+source files to specify information including:
+\n\nRequired cloud infrastructure and workspace configurations.\n\nUnit and integration tests.',
 
-'Databricks Assets Bundles are an infrastructure-as-code (IaC) approach to managing your Databricks projects. Use them when you want to manage complex projects where multiple contributors and automation are essential, and
+'Databricks Assets Bundles are an infrastructure-as-code (IaC) approach to managing your Databricks projects.
+Use them when you want to manage complex projects where multiple contributors and automation are essential, and
 
 continuous integration and deployment (CI/CD) are a requirement. Since bundles are defined and managed through
 
@@ -802,7 +752,12 @@ Databricks Asset Bundles, a new tool for streamlining the development of complex
 
 the Databricks platform. Bundles make it easy to manage complex projects during active development by providing CI/CD
 
-capabilities to your software development workflow in a single concise and declarative YAML syntax. By using bundles to automate your project's tests, deployments, and configuration management you can reduce errors while promoting software best practices across your organization as templated projects.\n\nPreview\n\nThis feature is in Public Preview.\n\nBundles provide a way to include metadata alongside your project's source files to specify information including:\n\nRequired cloud infrastructure and workspace configurations.\n\nUnit and integration tests.',
+capabilities to your software development workflow in a single concise and declarative YAML syntax.
+By using bundles to automate your project's tests, deployments, and configuration management
+you can reduce errors while promoting software best practices across your organization as templated projects.
+\n\nPreview\n\nThis feature is in Public Preview.\n\nBundles provide a way to include metadata alongside your
+project's source files to specify information including:\n\nRequired cloud infrastructure and workspace configurations
+\n\nUnit and integration tests.',
 
 'Databricks Assets Bundles are an infrastructure-as-code (IaC) approach to managing your Databricks projects.
 
@@ -836,7 +791,11 @@ Asset Bundles, a new tool for streamlining the development of complex data, anal
 
 Databricks platform. Bundles make it easy to manage complex projects during active development by providing CI/CD
 
-capabilities to your software development workflow in a single concise and declarative YAML syntax. By using bundles to automate your project's tests, deployments, and configuration management you can reduce errors while promoting software best practices across your organization as templated projects.\n\nPreview\n\nThis feature is in Public Preview.\n\nBundles provide a way to include metadata alongside your project's source files to specify information including:\n\nRequired cloud infrastructure and workspace configurations.\n\nUnit and integration tests.
+capabilities to your software development workflow in a single concise and declarative YAML syntax.
+By using bundles to automate your project's tests, deployments, and configuration management you can reduce errors while promoting software
+best practices across your organization as templated projects.\n\nPreview\n\nThis feature is in Public Preview.
+\n\nBundles provide a way to include metadata alongside your project's source files to specify information including:
+\n\nRequired cloud infrastructure and workspace configurations.\n\nUnit and integration tests.
 
 Databricks Assets Bundles are an infrastructure-as-code (IaC) approach to managing your Databricks projects. Use them
 

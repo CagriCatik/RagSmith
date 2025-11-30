@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import List
-
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication,
@@ -33,7 +33,10 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         configure_logging()
-        self.setWindowTitle("RagSmith PDF → Markdown")
+        self.setWindowTitle("RagSmith")
+
+        # Add this line
+        self.setWindowIcon(QIcon("assets\\logo.png"))
 
         self.config = RagSmithConfig()
         self.app: PdfMarkdownApp | None = None
