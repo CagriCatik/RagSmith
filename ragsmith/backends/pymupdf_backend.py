@@ -35,9 +35,11 @@ class PyMuPDFBackend(PdfToMarkdownBackend):
                     LOGGER.warning("Encountered layout bug; falling back to markitdown backend")
                     return self._fallback_convert_with_markitdown(pdf_path)
                 raise BackendConversionError("pymupdf4llm layout bug encountered") from exc
-            raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}") from exc
+            LOGGER.exception("pymupdf4llm failed for %s", pdf_path)
+            raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}: {exc}") from exc
         except Exception as exc:  # pragma: no cover - external library behaviour
-            raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}") from exc
+            LOGGER.exception("pymupdf4llm failed for %s", pdf_path)
+            raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}: {exc}") from exc
 
     def _fallback_convert_with_markitdown(self, pdf_path: Path) -> str:
         try:

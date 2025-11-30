@@ -7,6 +7,7 @@ import sys
 
 from ragsmith.app import PdfMarkdownApp
 from ragsmith.config import RagSmithConfig
+from ragsmith.errors import BackendConversionError, BackendNotAvailableError, OutputWriteError, format_exception_chain
 from ragsmith.logging_config import configure_logging
 
 
@@ -43,15 +44,18 @@ def main(argv: list[str] | None = None) -> int:
         split_sections=args.split_sections,
         overwrite=args.overwrite,
     )
-    app = PdfMarkdownApp(config)
-    results = app.convert_and_write(args.pdf_files, output_dir=args.output_dir)
+    try:
+        app = PdfMarkdownApp(config)
+        results = app.convert_and_write(args.pdf_files, output_dir=args.output_dir)
 
-    for input_path, outputs in results.items():
-        print(f"{input_path} →")
-        for output in outputs:
-            print(f"  - {output}")
-
-    return 0
+        for input_path, outputs in results.items():
+            print(f"{input_path} →")
+            for output in outputs:
+                print(f"  - {output}")
+        return 0
+    except (BackendConversionError, BackendNotAvailableError, OutputWriteError) as exc:
+        print(format_exception_chain(exc), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":  # pragma: no cover

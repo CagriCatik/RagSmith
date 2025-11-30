@@ -81,7 +81,10 @@ class DoclingBackend(PdfToMarkdownBackend):
         except BackendNotAvailableError:
             raise
         except Exception as exc:  # pragma: no cover - docling runtime issues
-            raise BackendConversionError(f"docling failed for {pdf_path}") from exc
+            LOGGER.exception("Docling conversion failed for %s", pdf_path)
+            raise BackendConversionError(
+                f"docling failed for {pdf_path}: {exc}"
+            ) from exc
 
 
 __all__ = ["DoclingBackend"]

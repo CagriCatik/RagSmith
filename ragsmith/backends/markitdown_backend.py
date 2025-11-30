@@ -25,7 +25,10 @@ class MarkitdownBackend(PdfToMarkdownBackend):
             result = self._impl.convert(pdf_path)
             return result.text_content
         except Exception as exc:  # pragma: no cover - external library behavior
-            raise BackendConversionError(f"markitdown failed for {pdf_path}") from exc
+            LOGGER.exception("markitdown failed for %s", pdf_path)
+            raise BackendConversionError(
+                f"markitdown failed for {pdf_path}: {exc}"
+            ) from exc
 
 
 __all__ = ["MarkitdownBackend"]

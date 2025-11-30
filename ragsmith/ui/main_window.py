@@ -25,7 +25,7 @@ from PyQt6.QtWidgets import (
 
 from ragsmith.app import PdfMarkdownApp
 from ragsmith.config import RagSmithConfig
-from ragsmith.errors import BackendNotAvailableError, OutputWriteError, BackendConversionError
+from ragsmith.errors import BackendNotAvailableError, OutputWriteError, BackendConversionError, format_exception_chain
 from ragsmith.logging_config import configure_logging
 
 
@@ -165,10 +165,10 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Done", "Conversion completed successfully.")
             self._set_status("Completed")
         except (OutputWriteError, BackendConversionError) as exc:
-            QMessageBox.critical(self, "Conversion error", str(exc))
+            QMessageBox.critical(self, "Conversion error", format_exception_chain(exc))
             self._set_status("Error")
         except Exception as exc:  # pragma: no cover - GUI safety
-            QMessageBox.critical(self, "Unexpected error", str(exc))
+            QMessageBox.critical(self, "Unexpected error", format_exception_chain(exc))
             self._set_status("Error")
 
 

@@ -65,7 +65,8 @@ class PdfMarkdownApp:
         except BackendConversionError:
             raise
         except Exception as exc:  # pragma: no cover - backend specific errors
-            raise BackendConversionError(f"Conversion failed for {pdf_path}") from exc
+            self.logger.exception("Unexpected backend failure for %s", pdf_path)
+            raise BackendConversionError(f"Conversion failed for {pdf_path}: {exc}") from exc
         return process_for_rag(raw_markdown, reflow=self.config.reflow)
 
     def convert_files(self, pdf_paths: Iterable[Path]) -> Dict[Path, str]:
@@ -118,7 +119,8 @@ class PdfMarkdownApp:
             target.write_text(markdown, encoding="utf-8")
             self.logger.info("Wrote %s", target)
         except Exception as exc:  # pragma: no cover - filesystem errors vary
-            raise OutputWriteError(f"Failed to write {target}") from exc
+            self.logger.exception("Failed to write %s", target)
+            raise OutputWriteError(f"Failed to write {target}: {exc}") from exc
 
 
 __all__ = ["PdfMarkdownApp"]
