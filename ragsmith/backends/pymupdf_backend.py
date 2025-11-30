@@ -12,12 +12,13 @@ LOGGER = logging.getLogger("ragsmith.backends.pymupdf")
 
 
 class PyMuPDFBackend(PdfToMarkdownBackend):
-    """Backend using pymupdf4llm with optional layout support."""
+    """Backend using ``pymupdf4llm`` with optional layout support."""
 
-    def __init__(self, *, enable_layout: bool = True) -> None:
+    def __init__(self, *, enable_layout: bool = True, fallback_to_markitdown: bool = False) -> None:
         if util.find_spec("pymupdf4llm") is None:
             raise BackendNotAvailableError("pymupdf4llm is not installed")
 
+        self._fallback_to_markitdown = fallback_to_markitdown
         self._layout_enabled = enable_layout and util.find_spec("pymupdf.layout") is not None
         self._impl = import_module("pymupdf4llm")
 
@@ -27,14 +28,24 @@ class PyMuPDFBackend(PdfToMarkdownBackend):
     def convert(self, pdf_path: Path) -> str:
         try:
             LOGGER.info("Converting %s with pymupdf4llm", pdf_path)
-            content = self._impl.to_markdown(pdf_path)
-            return content
+            return self._impl.to_markdown(pdf_path)
         except ValueError as exc:
             if "min() arg is an empty sequence" in str(exc):
+                if self._fallback_to_markitdown:
+                    LOGGER.warning("Encountered layout bug; falling back to markitdown backend")
+                    return self._fallback_convert_with_markitdown(pdf_path)
                 raise BackendConversionError("pymupdf4llm layout bug encountered") from exc
-            raise
+            raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}") from exc
         except Exception as exc:  # pragma: no cover - external library behaviour
             raise BackendConversionError(f"pymupdf4llm failed for {pdf_path}") from exc
+
+    def _fallback_convert_with_markitdown(self, pdf_path: Path) -> str:
+        try:
+            from ragsmith.backends.markitdown_backend import MarkitdownBackend
+
+            return MarkitdownBackend().convert(pdf_path)
+        except Exception as exc:  # pragma: no cover - import/runtime errors
+            raise BackendConversionError("Fallback to markitdown failed") from exc
 
 
 __all__ = ["PyMuPDFBackend"]

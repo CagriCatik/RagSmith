@@ -12,6 +12,10 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
+markitdown = ["markitdown"]
+pymupdf4llm = ["pymupdf4llm", "pymupdf-layout"]
+docling = ["docling", "torch"]
+full = ["markitdown", "pymupdf4llm", "pymupdf-layout", "docling", "torch"]
 gui = ["PyQt6"]
 
 [project.scripts]

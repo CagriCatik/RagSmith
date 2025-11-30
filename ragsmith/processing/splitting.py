@@ -9,7 +9,8 @@ _HEADING_PATTERN = re.compile(r"^#\s+(?P<title>.+)")
 
 
 def slugify(text: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", text).strip("-")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", text)
+    slug = re.sub(r"-+", "-", slug).strip("-")
     return slug.lower()
 
 
@@ -22,14 +23,15 @@ def split_by_top_level_headings(markdown_text: str) -> List[Tuple[str, str]]:
         match = _HEADING_PATTERN.match(line)
         if match:
             if current_lines:
-                sections.append((current_title or "section", "\n".join(current_lines).strip() + "\n"))
+                sections.append((current_title or "section", "\n".join(current_lines).strip()))
                 current_lines = []
             current_title = match.group("title").strip()
+            current_lines.append(line.rstrip())
         else:
-            current_lines.append(line)
+            current_lines.append(line.rstrip())
 
     if current_lines:
-        sections.append((current_title or "section", "\n".join(current_lines).strip() + "\n"))
+        sections.append((current_title or "section", "\n".join(current_lines).strip()))
 
     if not sections:
         return [("document", markdown_text)]

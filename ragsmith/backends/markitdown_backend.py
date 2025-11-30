@@ -12,7 +12,7 @@ LOGGER = logging.getLogger("ragsmith.backends.markitdown")
 
 
 class MarkitdownBackend(PdfToMarkdownBackend):
-    """Backend using the markitdown package."""
+    """Backend using the ``markitdown`` package."""
 
     def __init__(self) -> None:
         if util.find_spec("markitdown") is None:
@@ -24,7 +24,7 @@ class MarkitdownBackend(PdfToMarkdownBackend):
             LOGGER.info("Converting %s with markitdown", pdf_path)
             result = self._impl.convert(pdf_path)
             return result.text_content
-        except Exception as exc:  # pragma: no cover - depends on external library
+        except Exception as exc:  # pragma: no cover - external library behavior
             raise BackendConversionError(f"markitdown failed for {pdf_path}") from exc
 
 

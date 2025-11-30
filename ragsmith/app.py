@@ -3,42 +3,69 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Literal, Sequence
 
 from ragsmith.backends.docling_backend import DoclingBackend
 from ragsmith.backends.markitdown_backend import MarkitdownBackend
 from ragsmith.backends.pymupdf_backend import PyMuPDFBackend
 from ragsmith.config import RagSmithConfig
 from ragsmith.errors import BackendConversionError, BackendNotAvailableError, OutputWriteError
+from ragsmith.logging_config import get_logger
 from ragsmith.processing.rag_markdown import process_for_rag
 from ragsmith.processing.splitting import split_by_top_level_headings, slugify
 
-LOGGER = logging.getLogger("ragsmith.app")
+BackendName = Literal["markitdown", "pymupdf4llm", "docling"]
 
 
 class PdfMarkdownApp:
     """Main application orchestrating backend selection and processing."""
 
-    def __init__(self, config: RagSmithConfig | None = None):
-        self.config = config or RagSmithConfig.from_env()
-        self._backend = self._create_backend(self.config.backend)
-        LOGGER.debug("Initialized PdfMarkdownApp with config: %s", self.config)
+    def __init__(
+        self,
+        config: RagSmithConfig | None = None,
+        *,
+        logger: logging.Logger | None = None,
+        pymupdf_fallback_to_markitdown: bool = False,
+        docling_device: Literal["auto", "cpu", "cuda", "mps"] = "auto",
+    ) -> None:
+        self.config = config or RagSmithConfig()
+        self.logger = logger or get_logger("ragsmith")
+        self._backend = self._create_backend(
+            self.config.backend,
+            pymupdf_fallback_to_markitdown=pymupdf_fallback_to_markitdown,
+            docling_device=docling_device,
+        )
+        self.logger.debug("Initialized PdfMarkdownApp with config: %s", self.config)
 
-    def _create_backend(self, name: str):
-        factory = {
+    def _create_backend(
+        self,
+        name: BackendName,
+        *,
+        pymupdf_fallback_to_markitdown: bool,
+        docling_device: Literal["auto", "cpu", "cuda", "mps"],
+    ):
+        factories = {
             "markitdown": lambda: MarkitdownBackend(),
-            "pymupdf4llm": lambda: PyMuPDFBackend(),
-            "docling": lambda: DoclingBackend(),
-        }.get(name)
+            "pymupdf4llm": lambda: PyMuPDFBackend(fallback_to_markitdown=pymupdf_fallback_to_markitdown),
+            "docling": lambda: DoclingBackend(device=docling_device),
+        }
+        factory = factories.get(name)
         if factory is None:
             raise BackendConversionError(f"Unsupported backend: {name}")
         try:
             return factory()
         except BackendNotAvailableError:
             raise
+        except Exception as exc:  # pragma: no cover - safety net
+            raise BackendConversionError(f"Failed to initialize backend {name}") from exc
 
     def convert_file(self, pdf_path: Path) -> str:
-        raw_markdown = self._backend.convert(pdf_path)
+        try:
+            raw_markdown = self._backend.convert(pdf_path)
+        except BackendConversionError:
+            raise
+        except Exception as exc:  # pragma: no cover - backend specific errors
+            raise BackendConversionError(f"Conversion failed for {pdf_path}") from exc
         return process_for_rag(raw_markdown, reflow=self.config.reflow)
 
     def convert_files(self, pdf_paths: Iterable[Path]) -> Dict[Path, str]:
@@ -47,33 +74,49 @@ class PdfMarkdownApp:
             results[path] = self.convert_file(path)
         return results
 
-    def convert_and_write(self, pdf_paths: Iterable[Path], output_dir: Path | None = None) -> None:
+    def convert_and_write(
+        self,
+        pdf_paths: Sequence[Path],
+        output_dir: Path | None = None,
+    ) -> Dict[Path, List[Path]]:
         paths: List[Path] = list(pdf_paths)
         if not paths:
-            return
+            return {}
+
         for path in paths:
             if not path.exists():
                 raise OutputWriteError(f"Input file does not exist: {path}")
 
+        created: Dict[Path, List[Path]] = {}
         for path, markdown in self.convert_files(paths).items():
+            target_dir = output_dir or path.parent
+            target_dir.mkdir(parents=True, exist_ok=True)
+            created[path] = []
+
             if self.config.split_sections:
                 sections = split_by_top_level_headings(markdown)
-                for title, section_markdown in sections:
-                    filename = f"{slugify(title) or path.stem}.md"
-                    target_dir = output_dir or path.parent
-                    self._write_output(target_dir / filename, section_markdown)
+                for index, (title, section_markdown) in enumerate(sections, start=1):
+                    slug = slugify(title) or path.stem
+                    filename = f"{path.stem}-{slug}.md" if self.config.split_sections else f"{slug}.md"
+                    # Ensure unique filenames when headings repeat
+                    if any(existing.name == filename for existing in created[path]):
+                        filename = f"{path.stem}-{index:02d}-{slug}.md"
+                    target = target_dir / filename
+                    self._write_output(target, section_markdown)
+                    created[path].append(target)
             else:
-                target_dir = output_dir or path.parent
                 target = target_dir / f"{path.stem}.md"
                 self._write_output(target, markdown)
+                created[path].append(target)
+
+        return created
 
     def _write_output(self, target: Path, markdown: str) -> None:
-        target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists() and not self.config.overwrite:
             raise OutputWriteError(f"Refusing to overwrite existing file: {target}")
         try:
             target.write_text(markdown, encoding="utf-8")
-            LOGGER.info("Wrote %s", target)
+            self.logger.info("Wrote %s", target)
         except Exception as exc:  # pragma: no cover - filesystem errors vary
             raise OutputWriteError(f"Failed to write {target}") from exc
 
