@@ -30,6 +30,36 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--overwrite", dest="overwrite", action="store_true", help="Overwrite existing markdown files")
     parser.add_argument("--no-overwrite", dest="overwrite", action="store_false")
     parser.set_defaults(overwrite=RagSmithConfig().overwrite)
+    parser.add_argument(
+        "--ocr-lang",
+        nargs="+",
+        default=RagSmithConfig().ocr_languages,
+        help="Languages for EasyOCR (e.g. --ocr-lang en de)",
+    )
+    parser.add_argument(
+        "--ocr-device",
+        choices=["auto", "cpu", "cuda", "mps"],
+        default=RagSmithConfig().ocr_device,
+        help="Device for OCR (auto, cpu, cuda, or mps)",
+    )
+    parser.add_argument(
+        "--ocr-dpi",
+        type=int,
+        default=RagSmithConfig().ocr_dpi,
+        help="Render DPI for OCR rasterization (default: 300)",
+    )
+    parser.add_argument(
+        "--ocr-start-page",
+        type=int,
+        default=RagSmithConfig().ocr_start_page,
+        help="1-based first page to OCR (default: 1)",
+    )
+    parser.add_argument(
+        "--ocr-end-page",
+        type=int,
+        default=RagSmithConfig().ocr_end_page,
+        help="1-based last page to OCR (default: last)",
+    )
     return parser
 
 
@@ -43,6 +73,11 @@ def main(argv: list[str] | None = None) -> int:
         reflow=args.reflow,
         split_sections=args.split_sections,
         overwrite=args.overwrite,
+        ocr_languages=list(args.ocr_lang),
+        ocr_device=args.ocr_device,
+        ocr_dpi=args.ocr_dpi,
+        ocr_start_page=args.ocr_start_page,
+        ocr_end_page=args.ocr_end_page,
     )
     try:
         app = PdfMarkdownApp(config)
