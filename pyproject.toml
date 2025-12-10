@@ -19,8 +19,8 @@ full = ["markitdown", "pymupdf4llm", "pymupdf-layout", "docling", "torch"]
 gui = ["PyQt6"]
 
 [project.scripts]
-ragsmith-cli = "ragsmith.cli.main:main"
-ragsmith-gui = "ragsmith.ui.application:run"
+ragsmith-cli = "src.cli.main:main"
+ragsmith-gui = "src.ui.application:run"
 
 [tool.setuptools.packages.find]
 where = ["."]

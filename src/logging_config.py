@@ -1,4 +1,4 @@
-"""Logging configuration for RagSmith."""
+"""Logging configuration for src."""
 from __future__ import annotations
 
 import logging

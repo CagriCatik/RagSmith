@@ -5,16 +5,17 @@ import logging
 from pathlib import Path
 from typing import Dict, Iterable, List, Literal, Sequence
 
-from ragsmith.backends.docling_backend import DoclingBackend
-from ragsmith.backends.markitdown_backend import MarkitdownBackend
-from ragsmith.backends.pymupdf_backend import PyMuPDFBackend
-from ragsmith.config import RagSmithConfig
-from ragsmith.errors import BackendConversionError, BackendNotAvailableError, OutputWriteError
-from ragsmith.logging_config import get_logger
-from ragsmith.processing.rag_markdown import process_for_rag
-from ragsmith.processing.splitting import split_by_top_level_headings, slugify
+from src.backends.docling_backend import DoclingBackend
+from src.backends.markitdown_backend import MarkitdownBackend
+from src.backends.ocr_backend import OCRBackend
+from src.backends.pymupdf_backend import PyMuPDFBackend
+from src.config import RagSmithConfig
+from src.errors import BackendConversionError, BackendNotAvailableError, OutputWriteError
+from src.logging_config import get_logger
+from src.processing.rag_markdown import process_for_rag
+from src.processing.splitting import split_by_top_level_headings, slugify
 
-BackendName = Literal["markitdown", "pymupdf4llm", "docling"]
+BackendName = Literal["markitdown", "pymupdf4llm", "docling", "ocr"]
 
 
 class PdfMarkdownApp:
@@ -27,13 +28,33 @@ class PdfMarkdownApp:
         logger: logging.Logger | None = None,
         pymupdf_fallback_to_markitdown: bool = True,
         docling_device: Literal["auto", "cpu", "cuda", "mps"] = "auto",
+        ocr_languages: Sequence[str] | None = None,
+        ocr_device: Literal["auto", "cpu", "cuda", "mps"] | None = None,
+        ocr_dpi: int | None = None,
+        ocr_start_page: int | None = None,
+        ocr_end_page: int | None = None,
     ) -> None:
         self.config = config or RagSmithConfig()
+        if ocr_languages is not None:
+            self.config.ocr_languages = list(ocr_languages)
+        if ocr_device is not None:
+            self.config.ocr_device = ocr_device
+        if ocr_dpi is not None:
+            self.config.ocr_dpi = ocr_dpi
+        if ocr_start_page is not None:
+            self.config.ocr_start_page = ocr_start_page
+        if ocr_end_page is not None:
+            self.config.ocr_end_page = ocr_end_page
         self.logger = logger or get_logger("ragsmith")
         self._backend = self._create_backend(
             self.config.backend,
             pymupdf_fallback_to_markitdown=pymupdf_fallback_to_markitdown,
             docling_device=docling_device,
+            ocr_languages=self.config.ocr_languages,
+            ocr_device=self.config.ocr_device,
+            ocr_dpi=self.config.ocr_dpi,
+            ocr_start_page=self.config.ocr_start_page,
+            ocr_end_page=self.config.ocr_end_page,
         )
         self.logger.debug("Initialized PdfMarkdownApp with config: %s", self.config)
 
@@ -43,6 +64,11 @@ class PdfMarkdownApp:
         *,
         pymupdf_fallback_to_markitdown: bool,
         docling_device: Literal["auto", "cpu", "cuda", "mps"],
+        ocr_languages: Sequence[str],
+        ocr_device: Literal["auto", "cpu", "cuda", "mps"],
+        ocr_dpi: int,
+        ocr_start_page: int | None,
+        ocr_end_page: int | None,
     ):
         factories = {
             "markitdown": lambda: MarkitdownBackend(),
@@ -50,6 +76,13 @@ class PdfMarkdownApp:
                 fallback_to_markitdown=pymupdf_fallback_to_markitdown
             ),
             "docling": lambda: DoclingBackend(device=docling_device),
+            "ocr": lambda: OCRBackend(
+                languages=ocr_languages,
+                device=ocr_device,
+                dpi=ocr_dpi,
+                start_page=ocr_start_page,
+                end_page=ocr_end_page,
+            ),
         }
         factory = factories.get(name)
         if factory is None:

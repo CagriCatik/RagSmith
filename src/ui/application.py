@@ -5,7 +5,7 @@ import sys
 
 from PyQt6.QtWidgets import QApplication
 
-from ragsmith.ui.main_window import MainWindow
+from src.ui.main_window import MainWindow
 
 
 def run() -> None:

@@ -23,10 +23,10 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ragsmith.app import PdfMarkdownApp
-from ragsmith.config import RagSmithConfig
-from ragsmith.errors import BackendNotAvailableError, OutputWriteError, BackendConversionError, format_exception_chain
-from ragsmith.logging_config import configure_logging
+from src.app import PdfMarkdownApp
+from src.config import RagSmithConfig
+from src.errors import BackendNotAvailableError, OutputWriteError, BackendConversionError, format_exception_chain
+from src.logging_config import configure_logging
 
 
 class MainWindow(QMainWindow):
@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
         # Backend options
         layout.addWidget(QLabel("Backend:"), 4, 0)
         self.backend_combo = QComboBox()
-        self.backend_combo.addItems(["docling", "markitdown", "pymupdf4llm"])
+        self.backend_combo.addItems(["docling", "markitdown", "pymupdf4llm", "ocr"])
         self.backend_combo.setCurrentText(self.config.backend)
         layout.addWidget(self.backend_combo, 4, 1, 1, 2)
 

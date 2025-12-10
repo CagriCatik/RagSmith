@@ -5,10 +5,10 @@ import logging
 from importlib import import_module, util
 from pathlib import Path
 
-from ragsmith.backends.base import PdfToMarkdownBackend
-from ragsmith.errors import BackendConversionError, BackendNotAvailableError
+from src.backends.base import PdfToMarkdownBackend
+from src.errors import BackendConversionError, BackendNotAvailableError
 
-LOGGER = logging.getLogger("ragsmith.backends.pymupdf")
+LOGGER = logging.getLogger("src.backends.pymupdf")
 
 
 class PyMuPDFBackend(PdfToMarkdownBackend):
@@ -68,7 +68,7 @@ class PyMuPDFBackend(PdfToMarkdownBackend):
 
     def _fallback_convert_with_markitdown(self, pdf_path: Path) -> str:
         try:
-            from ragsmith.backends.markitdown_backend import MarkitdownBackend
+            from src.backends.markitdown_backend import MarkitdownBackend
 
             return MarkitdownBackend().convert(pdf_path)
         except Exception as exc:  # pragma: no cover - import/runtime errors

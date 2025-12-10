@@ -1,16 +1,108 @@
 # Optimal PDF Ingestion Strategy for RAG Systems
 
-## 1. Overview
+Retrieval-Augmented Generation depends on the fidelity of its underlying corpus. PDFs complicate this because they are presentation-first containers: a PDF stores glyph positions, vector shapes, tables, and images, not the underlying semantic structure. Treating them as if they are ordinary text almost always produces corrupted samples, fragmented sentences, and malformed chunk boundaries. This reduces embedding quality, harms retrieval, and increases hallucination risk.
 
-Retrieval-Augmented Generation (RAG) systems derive their effectiveness largely from the quality of the underlying knowledge base. When ingesting documents in PDF format, the ingestion pipeline is critical because PDFs are not semantically structured text: they encode layout (glyphs, positions, vector graphics, images, tables), rather than logical structure. Poor ingestion leads to degraded:
+A reliable ingestion pipeline treats PDFs as noisy signals that must be reconstructed into clean semantic text. The goal is not extraction but normalization: transform the visual layout into a stable textual representation that an LLM can embed, retrieve, and cite consistently.
 
-* semantic coherence of text chunks
-* embedding vector quality
-* retrieval precision and recall
-* grounding and citation accuracy
-* hallucination control
+## Why Naive PDF-to-Text Extraction Fails
 
-Therefore, a controlled ingestion pipeline — converting PDFs into structured, normalized, chunkable text (e.g., Markdown) — tends to produce significantly better results than naive direct PDF-to-text ingestion.
+PDFs break assumptions that RAG pipelines usually rely on. Common failure modes include:
+
+* Sentence fragmentation caused by line breaks, dual columns, or irregular spacing.
+* Disordered text when the rendering order differs from the logical reading order.
+* Lost hierarchical structure (headings, sections, captions) that retrieval depends on.
+* Missing or malformed tables, formulas, and diagrams.
+* Artifacts such as page numbers, footers, or header repetitions leaking into chunks.
+
+These issues distort embeddings. A chunk contaminated with header/footer noise or mis-ordered sentences loses topical cohesion, which weakens nearest-neighbor search and leads to irrelevant retrieval.
+
+## Goals of a Reliable Ingestion Pipeline
+
+A strong ingestion strategy enforces three properties:
+
+**1. Semantic Structure Reconstruction**
+Re-create headings, lists, tables, and figure references so the final text reflects the document's logical structure, independent of visual placement.
+
+**2. Normalization and Cleanliness**
+Remove artifacts such as page numbers, running headers, redundant whitespace, and hyphenation.
+
+**3. Chunkability and Embeddability**
+Produce stable, coherent text blocks that align with semantic boundaries. Chunking works best when inputs are predictable and contextually consistent.
+
+Markdown serves as a practical target format because it preserves hierarchy and formatting without introducing layout noise.
+
+## Recommended Pipeline Architecture
+
+### 1. Structural Extraction
+
+Use an extraction tool capable of reading not just glyph positions but inferred structure. Effective approaches incorporate vision models or layout-aware models. Examples include layout-aware parsers, PDF-to-HTML converters, or OCR-based multimodal extractors for scans.
+
+Key tasks:
+
+* Identify headings (font size, boldness, spacing).
+* Reconstruct lists, bullets, and numbered items.
+* Capture tables as Markdown or CSV-like structures.
+* Preserve figure captions with stable anchors, even if images are omitted.
+
+### 2. Normalization
+
+Apply deterministic post-processing that converts noisy extraction into a clean canonical form.
+
+Typical normalization steps:
+
+* Remove page numbers, footers, and headers.
+* Merge lines into paragraphs.
+* Restore paragraph boundaries reliably.
+* Standardize punctuation and whitespace.
+* Remove hyphenation at line breaks.
+* Convert tables into Markdown tables when possible.
+
+At this stage, the document should be structurally consistent and free from layout artifacts.
+
+### 3. Semantic Enrichment (Optional but Recommended)
+
+Use an LLM to refine the normalized text without altering meaning. This includes:
+
+* Ensuring headings follow a consistent hierarchy.
+* Rewriting malformed tables or bullet lists.
+* Creating logical sections for extremely irregular documents.
+* Adding metadata or document-level summaries for better retrieval clustering.
+
+This enrichment step must be deterministic, auditable, and non-creative: the model corrects structure, not meaning.
+
+### 4. Chunking Strategy
+
+Chunking should follow semantic boundaries rather than fixed token lengths. Ideal chunk units include:
+
+* Sections or subsection blocks.
+* Table-plus-caption regions.
+* Lists grouped by purpose.
+* Paragraph clusters when sections are long.
+
+Adaptive chunking improves embedding quality and reduces cross-topic contamination. If token constraints require splitting a long semantic block, split at natural boundaries, never in the middle of a table, formula, or bulleted sequence.
+
+### 5. Embedding and Indexing
+
+With clean Markdown, embedding becomes predictable. Important considerations:
+
+* Encode each chunk with metadata (source filename, section title, page range).
+* Keep chunk sizes consistent for nearest-neighbor stability.
+* Use a model with strong performance on long-form structured text.
+* Store full doc-level embeddings separately for recall-based rerankers.
+
+Indexing should support hybrid search if precise retrieval is needed, e.g., lexical signals for table-heavy documents.
+
+## Outcome: Higher Retrieval Fidelity and Lower Hallucination Risk
+
+When ingestion is controlled, the RAG system benefits across several dimensions:
+
+* **Improved semantic cohesion**: chunks represent coherent concepts instead of layout-fragmented text.
+* **Higher embedding quality**: embeddings reflect true meaning rather than PDF noise.
+* **More accurate retrieval**: hybrid and embedding-based search both perform markedly better.
+* **Better grounding**: citations map to stable sections, making responses verifiable.
+* **Reduced hallucination**: the model relies on crisp, structured information rather than corrupted PDF fragments.
+
+A well-designed ingestion pipeline transforms PDFs from messy visual artifacts into reliable semantic assets. Clean structure, normalized text, and coherent chunks form the backbone of any high-quality RAG system, and ingestion is where most of that reliability is won or lost.
 
 ```mermaid
 flowchart TD
@@ -18,8 +110,8 @@ flowchart TD
     subgraph Direct["Direct PDF Ingestion"]
         DPDF["PDF"]
         DTXT["Generic PDF-to-text (flattened text)"]
-        DNOISE["Artifacts & Noise - - Hyphenation - - Broken paragraphs - - Headers/footers - - OCR errors"]
-        DLOSS["Structural Loss - - No headings - - No tables - - No lists - - No layout"]
+        DNOISE["Artifacts & Noise - Hyphenation - Broken paragraphs - Headers/footers - OCR errors"]
+        DLOSS["Structural Loss - No headings - No tables - No lists - No layout"]
         DCHUNK["Naive Chunking (sliding window only)"]
         DEMB["Embeddings (low semantic fidelity)"]
         DRET["Retrieval (low precision/recall)"]
@@ -45,9 +137,9 @@ flowchart TD
 
 ---
 
-## 2. Why Direct PDF Ingestion Often Fails in RAG Pipelines
+## Why Direct PDF Ingestion Often Fails in RAG Pipelines
 
-### 2.1 Structural Loss
+### Structural Loss
 
 Generic PDF-to-text extractors often flatten layout, losing essential structure:
 
@@ -59,7 +151,7 @@ Generic PDF-to-text extractors often flatten layout, losing essential structure:
 
 This structural loss makes it hard to chunk text semantically: chunks may mix unrelated content, split logical units incorrectly, or join unrelated sections — harming embedding semantic coherence.
 
-### 2.2 Noise and Textual Artifacts
+### Noise and Textual Artifacts
 
 Common artifacts from naive extraction:
 
@@ -72,7 +164,7 @@ Common artifacts from naive extraction:
 
 These artifacts distort the embedding space (embedding models treat noise as semantic signal), degrading retrieval accuracy and raising hallucination risk.
 
-### 2.3 Loss of Semantic Cues That Embedding Models Expect
+### Loss of Semantic Cues That Embedding Models Expect
 
 Embedding models (OpenAI, Cohere, Nomic, etc.) are typically trained on structured corpora: markdown / HTML / well-formatted text. These corpora contain semantic cues: headings, paragraph breaks, lists, tables. Without these cues, embedding models may encode documents suboptimally, resulting in weaker semantic similarity retrieval.
 
@@ -80,11 +172,11 @@ Empirical studies confirm: better upstream parsing and chunking improves downstr
 
 ---
 
-## 3. Advantages of a PDF → Markdown (or Other Structured Text) Conversion Layer
+## Advantages of a PDF → Markdown (or Other Structured Text) Conversion Layer
 
 Converting PDFs into Markdown (or other structured formats) prior to chunking and embedding yields multiple practical and empirical benefits:
 
-### 3.1 Semantic Preservation
+### Semantic Preservation
 
 Markdown allows preserving:
 
@@ -99,7 +191,7 @@ Markdown allows preserving:
 
 This preserves the logical document structure and improves semantic coherence of chunks.
 
-### 3.2 Clean, Controlled Normalization
+### Clean, Controlled Normalization
 
 With a conversion + normalization pipeline, engineers can reliably:
 
@@ -112,7 +204,7 @@ With a conversion + normalization pipeline, engineers can reliably:
 
 This produces stable, high-quality embeddings and reduces noise.
 
-### 3.3 Structure-Aware, Deterministic Chunking
+### Structure-Aware, Deterministic Chunking
 
 With structured text you can chunk based on semantic boundaries rather than arbitrary token windows:
 
@@ -123,39 +215,80 @@ With structured text you can chunk based on semantic boundaries rather than arbi
 
 This improves retrieval relevance, especially for questions that rely on specific semantic units (e.g. paragraphs, code blocks, tables).
 
-### 3.4 Rich Metadata and Grounding for Retrieval & Citation
+### Rich Metadata and Grounding for Retrieval & Citation
 
 Structured ingestion supports storing metadata per chunk: document id, page number, section heading, chunk id. Retrieval results can return not just bare text but rich context: where in the document it came from, which section, which page — enabling precise grounding and citation in LLM answers.
 
-### 3.5 Compatibility with Industry Tooling & Maintainability
+### Compatibility with Industry Tooling & Maintainability
 
 Markdown (or other structured text) is widely supported, human-readable, diffable (for QA), easy to version control, and well-suited for downstream pipelines (embedding, indexing, vector DB ingestion, retrieval, LLM prompting). This aligns with industry-standard RAG workflows rather than brittle, ad-hoc direct PDF ingestion.
 
 ---
 
-## 4. Recommended Pipeline Architecture
+## Recommended Pipeline Architecture
 
-### 4.1 High-Level Pipeline
+### High-Level Pipeline
+
+```mermaid
+flowchart LR
+
+    PDF["PDF document"]
+
+    EXTRACT["Layout-aware extraction engine
+(e.g. PyMuPDF, pdfminer.six, pdfplumber, pypdfium2)"]
+
+    CONVERT["Structured conversion -> Markdown (or similar)"]
+
+    NORMALIZE["Normalization
+- cleaning
+- de-hyphenation
+- boilerplate removal
+- whitespace / unicode normalization"]
+
+    CHUNK["Structure-aware chunker
+(based on headings, lists, tables, logical blocks)"]
+
+    EMBED["Embedding model
+(text embeddings)"]
+
+    INDEX["Vector index
+(FAISS, Qdrant, Elasticsearch, Vespa, etc.)"]
+
+    RETRIEVE["Retrieval layer
+(vector + optional metadata / hybrid search)"]
+
+    LLM["LLM generator
+(context from retrieved chunks + citations/metadata)"]
+
+    PDF --> EXTRACT --> CONVERT --> NORMALIZE --> CHUNK --> EMBED --> INDEX --> RETRIEVE --> LLM
 
 ```
-PDF Document
-   ↓ Layout-aware Extraction Engine (e.g. PyMuPDF, pdfminer.six, pdfplumber, pypdfium2)
-   ↓ Structured Conversion → Markdown (or similar)
-   ↓ Normalization (cleaning, de-hyphenation, boilerplate removal, whitespace/unicode normalization)
-   ↓ Structure-aware Chunker (based on headings, lists, tables, logical blocks)
-   ↓ Embedding Model (text embeddings)
-   ↓ Vector Index (FAISS, Qdrant, Elasticsearch, Vespa, etc.)
-   ↓ Retrieval Layer (vector + optional metadata / hybrid search)
-   ↓ LLM Generator (context from retrieved chunks + citations/metadata)
-```
 
-### 4.2 Chunking Logic Model
+### Chunking Logic Model
 
-```
-Markdown Document (with headings, lists, tables, code blocks)
-   └── Split by semantic boundaries (H1/H2/H3, tables, list blocks, code fences, figure captions)
-          └── For large sections: sliding window token-based chunking (with overlap)
-                 └── Final chunk set with metadata (doc_id, section, page, chunk_id, heading)
+```mermaid
+flowchart LR
+
+    MD["Markdown document
+(with headings, lists, tables, code blocks)"]
+
+    SEMSPLIT["Split by semantic boundaries:
+- H1 / H2 / H3
+- tables
+- list blocks
+- code fences
+- figure captions"]
+
+    WINDOW["For large sections:
+sliding–window token-based chunking
+(with overlap)"]
+
+    FINAL["Final chunk set with metadata:
+doc_id, section, page,
+chunk_id, heading"]
+
+    MD --> SEMSPLIT --> WINDOW --> FINAL
+
 ```
 
 Chunk size target: typically 300–500 tokens (depending on embedding/context window), overlap 15–20% recommended for context continuity.
@@ -163,12 +296,12 @@ Chunk size target: typically 300–500 tokens (depending on embedding/context wi
 ```mermaid
 flowchart TD
     MD["Markdown Document - (with headings/lists/tables/code)"]
-    DETECT["Detect Semantic Boundaries - - H1/H2/H3 - - tables - - list blocks - - code fences"]
+    DETECT["Detect Semantic Boundaries - H1/H2/H3 - tables - list blocks - code fences"]
     SUBSECTIONS["Logical Sections - (heading + body)"]
     SIZECHECK{"Is section - > max tokens N?"}
     SW["Sliding Window Chunking - (overlapping windows - of 300–500 tokens, - 15–20% overlap)"]
     ATOMIC["Atomic Chunk - (kept intact: - tables/lists/code/paragraph)"]
-    METADATA["Attach Metadata - - doc_id - - section path - - page range - - chunk_id"]
+    METADATA["Attach Metadata - doc_id - section path - page range - chunk_id"]
     OUT["Final Chunk Set - (ready for embedding)"]
 
     MD --> DETECT --> SUBSECTIONS --> SIZECHECK
@@ -185,11 +318,11 @@ flowchart TD
     PDF[("PDF Document")]
     EXTRACT["Layout-aware Extraction - (PyMuPDF, pdfminer, pdfplumber, - OCR fallback if needed)"]
     MARKDOWN["Structured Conversion - → Markdown"]
-    NORMALIZE["Normalization - - de-hyphenation - - boilerplate removal - - Unicode/whitespace cleanup"]
-    CHUNK["Structure-aware Chunking - - headings - - tables - - lists - - code blocks"]
+    NORMALIZE["Normalization - de-hyphenation - boilerplate removal - Unicode/whitespace cleanup"]
+    CHUNK["Structure-aware Chunking - headings - tables - lists - code blocks"]
     EMBED["Embedding Model - (domain-aware if needed)"]
     INDEX["Vector Index - (FAISS / Qdrant / Elasticsearch / Vespa)"]
-    RETRIEVE["Retrieval Layer - - vector search - - metadata filters - - hybrid search"]
+    RETRIEVE["Retrieval Layer - vector search - metadata filters - hybrid search"]
     LLM["LLM Generator - with grounded citations"]
 
     PDF --> EXTRACT --> MARKDOWN --> NORMALIZE --> CHUNK --> EMBED --> INDEX --> RETRIEVE --> LLM
@@ -198,9 +331,9 @@ flowchart TD
 
 ---
 
-## 5. Engineering Implementation Details
+## Engineering Implementation Details
 
-### 5.1 Extraction Layer (Layout-Aware PDF Parsing)
+### Extraction Layer (Layout-Aware PDF Parsing)
 
 Use libraries that provide layout-aware extraction, not naive linear text dumps. Examples:
 
@@ -216,7 +349,7 @@ Implementation guidelines:
 * Detect and extract tables (via table heuristics or table-extraction libraries)
 * Extract images/graphics optionally (for diagrams, charts) — possibly saving separately with references
 
-### 5.2 Conversion Layer: Markdown as Canonical Intermediate Format
+### Conversion Layer: Markdown as Canonical Intermediate Format
 
 Why Markdown:
 
@@ -237,7 +370,7 @@ Recommended conversion procedural steps:
 
 This approach is implemented by tools such as the project RAG-Ingest which internally uses PyMuPDF and outputs Markdown including tables/images/code blocks. ([GitHub][4])
 
-### 5.3 Normalization Layer
+### Normalization Layer
 
 After Markdown conversion, apply deterministic cleanup:
 
@@ -251,7 +384,7 @@ After Markdown conversion, apply deterministic cleanup:
 
 These steps help produce consistent, stable embeddings across ingestion runs, improving reproducibility and reducing noise.
 
-### 5.4 Structure-Aware Chunking
+### Structure-Aware Chunking
 
 Chunking should be aware of semantic boundaries; guidelines:
 
@@ -260,7 +393,7 @@ Chunking should be aware of semantic boundaries; guidelines:
 * For large sections, apply sliding-window chunking: split into overlapping chunks by token count (e.g. 300–500 tokens) with overlap (~15–20%) to preserve context.
 * Assign and store rich metadata per chunk: document ID, section heading, page(s), chunk ID, possibly table-of-contents path. This metadata supports retrieval filtering, context attribution, and citation.
 
-### 5.5 Embedding and Indexing
+### Embedding and Indexing
 
 After chunking:
 
@@ -268,7 +401,7 @@ After chunking:
 * Optionally, for technical or domain-specific corpora, consider embedding models optimized for technical language (see recent research, §6.3).
 * Store embeddings along with metadata in a vector index / vector store that supports approximate nearest neighbor (ANN) search, metadata filtering, and hybrid search (vector + sparse keyword/BM25). Common choices: FAISS, Qdrant, Elasticsearch, Vespa, etc.
 
-### 5.6 Retrieval and Answer Grounding
+### Retrieval and Answer Grounding
 
 At query time:
 
@@ -276,7 +409,6 @@ At query time:
 * Return chunk text + metadata (document, section heading, page, chunk id) to the LLM generator
 * The LLM uses retrieved chunks as context; citations (metadata) allow grounding answers — referencing which document / section / page chunk came from.
 * When documents include images or tables, ensure that associated metadata and references are included so that images/tables can be retrieved and possibly rendered or summarized. This is especially important when the content is multimodal. Multi-modal RAG enables answering on images/tables as well as text. ([LangChain Blog][5])
-
 
 ```mermaid
 flowchart TD
@@ -286,8 +418,8 @@ flowchart TD
 
     subgraph Layout["Layout Reconstruction"]
       BLOCKS["Text Blocks + BBoxes (x,y,width,height,font)"]
-      ORDER["Reading Order\n- y/x sort\n- column detection"]
-      STRUCT_HINTS["Structure Hints\n- font size/style\n- indentation\n- bullets/numbers\n- table grids"]
+      ORDER["Reading Order - y/x sort - column detection"]
+      STRUCT_HINTS["Structure Hints - font size/style - indentation - bullets/numbers - table grids"]
     end
 
     subgraph MDConv["Markdown Conversion"]
@@ -320,9 +452,9 @@ flowchart TD
 
 ---
 
-## 6. Empirical Evidence & Research Findings
+## Empirical Evidence & Research Findings
 
-### 6.1 Quality of Parsing and Chunking Matters for RAG Performance
+### Quality of Parsing and Chunking Matters for RAG Performance
 
 A recent empirical study Revolutionizing Retrieval-Augmented Generation with Enhanced PDF Structure Recognition (2024) shows that a RAG system with a “panoptic and pinpoint PDF parser” that preserves structural elements (headings, paragraphs, tables, images) significantly outperforms baseline naive parsers on real-world professional documents. ([arXiv][1])
 
@@ -330,7 +462,7 @@ Another evaluation OCR Hinders RAG: Evaluating the Cascading Impact of OCR on Re
 
 These results confirm that ingestion quality (parsing + structuring) is a critical determinant of RAG system performance.
 
-### 6.2 Challenges with OCR / Scanned PDFs and Multimodal Content
+### Challenges with OCR / Scanned PDFs and Multimodal Content
 
 When PDF content is not text-based (scanned pages, images containing text, embedded figures/diagrams, tables), naive extraction fails.
 
@@ -340,7 +472,7 @@ When PDF content is not text-based (scanned pages, images containing text, embed
 
 These challenges underscore the need for robust ingestion pipelines that handle mixed content, not just plain text.
 
-### 6.3 Domain-Specific Embeddings for Technical Documents
+### Domain-Specific Embeddings for Technical Documents
 
 General-purpose embedding models may underperform on technical or domain-specific corpora (e.g. scientific papers, engineering docs). Recent work Enhancing Technical Documents Retrieval for RAG (2025) shows that “Technical-Embeddings” — embedding models or pipelines tuned for technical language, context, and structure — significantly outperform traditional embeddings for retrieval tasks on technical documents (improved precision/recall, better handling of complex terminology). ([arXiv][7])
 
@@ -360,15 +492,15 @@ flowchart TD
     TEXT_PARSER["Text-based Parser (layout-aware)"]
     STRUCT_TEXT["Structured Text (Markdown / HTML)"]
     CLEAN_TEXT["Cleaned and Normalized Text"]
-    GOOD_RAG["High-quality RAG\n- better retrieval\n- fewer hallucinations"]
+    GOOD_RAG["High-quality RAG  - better retrieval  - fewer hallucinations"]
 
     PATH_TEXT --> TEXT_PARSER --> STRUCT_TEXT --> CLEAN_TEXT --> GOOD_RAG
 
     OCR["OCR Engine (semantic/format noise)"]
     OCR_TEXT["OCR Text Output"]
-    OCR_NOISE["Noise and Errors\n- char errors\n- broken tokens\n- lost layout"]
-    BAD_STRUCT["Weakened Structure\n- noisy tokens"]
-    DEGRADED_RAG["Degraded RAG\n- lower accuracy\n- unstable answers"]
+    OCR_NOISE["Noise and Errors  - char errors  - broken tokens  - lost layout"]
+    BAD_STRUCT["Weakened Structure  - noisy tokens"]
+    DEGRADED_RAG["Degraded RAG  - lower accuracy  - unstable answers"]
 
     PATH_SCAN --> OCR --> OCR_TEXT --> OCR_NOISE --> BAD_STRUCT --> DEGRADED_RAG
 
@@ -377,7 +509,7 @@ flowchart TD
 
 ---
 
-## 7. Recommended Production Ingestion Pipeline (Canonical)
+## Recommended Production Ingestion Pipeline (Canonical)
 
 Based on best practices and empirical evidence, the following pipeline is recommended for production-grade RAG systems ingesting PDF documents:
 
@@ -396,7 +528,7 @@ This yields: high retrieval precision/recall; reduced hallucination; improved ci
 
 ---
 
-## 8. When Direct PDF Ingestion Might Be Acceptable
+## When Direct PDF Ingestion Might Be Acceptable
 
 Although structured conversion is strongly preferred, direct ingestion might be acceptable under limited conditions / tradeoffs:
 
@@ -408,17 +540,36 @@ Although structured conversion is strongly preferred, direct ingestion might be 
 In these cases direct ingestion might suffice; but for production systems aiming at high quality, reliability, and citation accuracy, structured ingestion remains best practice.
 
 ```mermaid
-flowchart LR
+flowchart TD
 
-    START{"Need to ingest PDF for RAG?"}
+    %% Force diamond by using { } only
+    START{{Need to ingest a PDF for RAG?}}
 
-    COMPLEX{"Complex layout?- multi-column- tables/images- code- scientific/technical"}
-    QUALITY{"High quality required?- accurate grounding- low hallucination- production use"}
-    TIME{"Time / engineering budgetfor structured pipeline?"}
+    COMPLEX{{Is the PDF complex?
+    - Multi-column
+    - Tables/images
+    - Code blocks
+    - Scientific/technical?}}
 
-    STRUCTURED["Use Structured Pipeline:PDF → layout-aware extraction → Markdown → normalization → structure-aware chunking"]
-    DIRECT_OK["Direct ingestion acceptable(for prototype or trivial docs)"]
-    DIRECT_NOT["Avoid direct ingestion(risk to quality too high)"]
+    QUALITY{{Is high quality required?
+    - Accurate grounding
+    - Low hallucination
+    - Production?}}
+
+    TIME{{Do you have engineering time
+    for a structured pipeline?}}
+
+    %% Outcomes use ( ) to avoid diamond/rect confusion
+    STRUCTURED(["Use a structured pipeline:
+PDF -> layout-aware extraction
+-> Markdown -> normalization
+-> structure-aware chunking"])
+
+    DIRECT_OK(["Direct ingestion OK
+(prototype or simple docs)"])
+
+    DIRECT_NOT(["Avoid direct ingestion
+(quality risk too high)"])
 
     START --> COMPLEX
     COMPLEX --> QUALITY
@@ -434,22 +585,7 @@ flowchart LR
 
 ---
 
-## 9. Expanded Source List & References
-
-1. RAG-Ingest: PDF-to-Markdown Extraction and Indexing for RAG (GitHub) ([GitHub][4])
-2. PyMuPDF4LLM / PDF-to-Markdown project for structured conversion from PDFs to Markdown optimized for RAG. ([GitHub][8])
-3. “From PDFs to Markdown” — evaluation of open-source parsers for document ingestion (DEV Community) ([DEV Community][9])
-4. “RAG / LLM and PDF: Conversion to Markdown Text with PyMuPDF” — demonstration of conversion benefits for RAG ingestion. ([Artifex][2])
-5. Tutorial “How to parse PDF docs for RAG” by the OpenAI Cookbook — provides example workflows using pdfminer + image-based parsing. ([cookbook.openai.com][10])
-6. Technical blog “RAG Speedrun: Local LLMs and Unstructured PDF Ingestion” — documents challenges and recommends structured parsing for real-world documents. ([Today I Learned][11])
-7. Empirical research paper “Revolutionizing Retrieval-Augmented Generation with Enhanced PDF Structure Recognition” — demonstrates improved RAG performance with structure-aware parsing. ([arXiv][1])
-8. Benchmark study “OCR Hinders RAG: Evaluating the Cascading Impact of OCR on Retrieval-Augmented Generation” — shows how OCR noise significantly degrades RAG quality. ([arXiv][6])
-9. Paper “Beyond Extraction: Contextualising Tabular Data for Efficient Summarisation by Language Models” — highlights the importance of properly extracting and contextualizing tables for RAG summarization and QA. ([arXiv][12])
-10. Blog “Building a Graph & LLM-Powered RAG Application from PDF Documents” (Neo4j) — demonstration of full pipeline from PDF ingestion to knowledge graph + retrieval + LLM QA. ([Graph Database & Analytics][13])
-
----
-
-## 10. Recommendations and Best Practices (Checklist)
+## Recommendations and Best Practices (Checklist)
 
 * Prefer layout-aware PDF parsers (PyMuPDF, pdfplumber, pdfminer, pdfium) over naïve PDF-to-text extractors
 * Convert PDFs to structured intermediate format (Markdown) before chunking/embedding
@@ -479,7 +615,7 @@ flowchart TD
 
 ---
 
-## 11. Implementation checkpoints for RagSmith
+## Implementation checkpoints for RagSmith
 
 * **Layout-aware conversion already covered** by the Docling and PyMuPDF4LLM backends; keep MarkItDown as a fast fallback when layout libraries are missing.
 * **Normalization in code** should continue to strip boilerplate and collapse blank lines; the new paragraph merger fixes hyphenated line breaks so Markdown stays embedding-friendly.
@@ -487,20 +623,33 @@ flowchart TD
 * **Guard rails for the CLI/GUI**: validate paths up front, refuse overwrites unless requested, and surface dependency errors early so ingestion jobs fail fast.
 * **Next hardening steps**: add golden-file tests for the cleaning pipeline (noise stripping, reflow, hyphen repair) and lightweight checks that each backend returns UTF-8 Markdown without trailing whitespace.
 
-## 12. Conclusion
+## Conclusion
 
 Controlled ingestion — converting PDFs into structured, normalized Markdown (or similar) and applying structure-aware chunking prior to embedding — is strongly supported by both practical implementations and empirical research. This strategy consistently yields higher retrieval accuracy, better grounding, lower hallucination risk, and improved interpretability. Direct PDF ingestion should be limited to quick prototypes or trivial documents; for any production-grade RAG system dealing with non-trivial PDFs (technical reports, scientific papers, mixed-content documents), a structured ingestion pipeline is effectively mandatory for high-quality results.
 
-[1]: https://arxiv.org/abs/2401.12599?utm_source=chatgpt.com "Revolutionizing Retrieval-Augmented Generation with Enhanced PDF Structure Recognition"
-[2]: https://artifex.com/blog/rag-llm-and-pdf-conversion-to-markdown-text-with-pymupdf?utm_source=chatgpt.com "RAG/LLM and PDF: Conversion to Markdown Text with PyMuPDF"
-[3]: https://dzone.com/articles/rag-model-for-pdf-content-extraction-and-query-answering?utm_source=chatgpt.com "Implementing a RAG Model for PDF Content Extraction and Query ... - DZone"
-[4]: https://github.com/iamarunbrahma/rag-ingest?utm_source=chatgpt.com "RAG-Ingest: PDF to Markdown Extraction and Indexing for RAG"
-[5]: https://blog.langchain.com/semi-structured-multi-modal-rag/?utm_source=chatgpt.com "Multi-Vector Retriever for RAG on tables, text, and images"
-[6]: https://arxiv.org/abs/2412.02592?utm_source=chatgpt.com "OCR Hinders RAG: Evaluating the Cascading Impact of OCR on Retrieval-Augmented Generation"
-[7]: https://arxiv.org/pdf/2509.04139?utm_source=chatgpt.com "Enhancing Technical Documents Retrieval for RAG - arXiv.org"
-[8]: https://github.com/iamarunbrahma/pdf-to-markdown?utm_source=chatgpt.com "GitHub - iamarunbrahma/pdf-to-markdown: Conversion of PDF documents to ..."
-[9]: https://dev.to/ashokan/from-pdfs-to-markdown-evaluating-document-parsers-for-air-gapped-rag-systems-58eh?utm_source=chatgpt.com "From PDFs to Markdown - DEV Community"
-[10]: https://cookbook.openai.com/examples/parse_pdf_docs_for_rag?utm_source=chatgpt.com "How to parse PDF docs for RAG - OpenAI"
-[11]: https://seantater.github.io/python/llm/rag/unstructured/pdf/2025/07/05/rag-speedrun-unstructured-pdfs.html?utm_source=chatgpt.com "RAG Speedrun: Local LLMs and Unstructured PDF Ingestion"
-[12]: https://arxiv.org/abs/2401.02333?utm_source=chatgpt.com "Beyond Extraction: Contextualising Tabular Data for Efficient Summarisation by Language Models"
-[13]: https://neo4j.com/blog/developer/graph-llm-rag-application-pdf-documents/?utm_source=chatgpt.com "Building an LLM-Powered RAG App from PDF Documents"
+## Source List & References
+
+1. RAG-Ingest: PDF-to-Markdown Extraction and Indexing for RAG (GitHub) ([GitHub][4])
+2. PyMuPDF4LLM / PDF-to-Markdown project for structured conversion from PDFs to Markdown optimized for RAG. ([GitHub][8])
+3. “From PDFs to Markdown” — evaluation of open-source parsers for document ingestion (DEV Community) ([DEV Community][9])
+4. “RAG / LLM and PDF: Conversion to Markdown Text with PyMuPDF” — demonstration of conversion benefits for RAG ingestion. ([Artifex][2])
+5. Tutorial “How to parse PDF docs for RAG” by the OpenAI Cookbook — provides example workflows using pdfminer + image-based parsing. ([cookbook.openai.com][10])
+6. Technical blog “RAG Speedrun: Local LLMs and Unstructured PDF Ingestion” — documents challenges and recommends structured parsing for real-world documents. ([Today I Learned][11])
+7. Empirical research paper “Revolutionizing Retrieval-Augmented Generation with Enhanced PDF Structure Recognition” — demonstrates improved RAG performance with structure-aware parsing. ([arXiv][1])
+8. Benchmark study “OCR Hinders RAG: Evaluating the Cascading Impact of OCR on Retrieval-Augmented Generation” — shows how OCR noise significantly degrades RAG quality. ([arXiv][6])
+9. Paper “Beyond Extraction: Contextualising Tabular Data for Efficient Summarisation by Language Models” — highlights the importance of properly extracting and contextualizing tables for RAG summarization and QA. ([arXiv][12])
+10. Blog “Building a Graph & LLM-Powered RAG Application from PDF Documents” (Neo4j) — demonstration of full pipeline from PDF ingestion to knowledge graph + retrieval + LLM QA. ([Graph Database & Analytics][13])
+
+[1]: https://arxiv.org/abs/2401.12599 "Revolutionizing Retrieval-Augmented Generation with Enhanced PDF Structure Recognition"
+[2]: https://artifex.com/blog/rag-llm-and-pdf-conversion-to-markdown-text-with-pymupdf "RAG/LLM and PDF: Conversion to Markdown Text with PyMuPDF"
+[3]: https://dzone.com/articles/rag-model-for-pdf-content-extraction-and-query-answering "Implementing a RAG Model for PDF Content Extraction and Query ... - DZone"
+[4]: https://github.com/iamarunbrahma/rag-ingest "RAG-Ingest: PDF to Markdown Extraction and Indexing for RAG"
+[5]: https://blog.langchain.com/semi-structured-multi-modal-rag/ "Multi-Vector Retriever for RAG on tables, text, and images"
+[6]: https://arxiv.org/abs/2412.02592 "OCR Hinders RAG: Evaluating the Cascading Impact of OCR on Retrieval-Augmented Generation"
+[7]: https://arxiv.org/pdf/2509.04139 "Enhancing Technical Documents Retrieval for RAG - arXiv.org"
+[8]: https://github.com/iamarunbrahma/pdf-to-markdown "GitHub - iamarunbrahma/pdf-to-markdown: Conversion of PDF documents to ..."
+[9]: https://dev.to/ashokan/from-pdfs-to-markdown-evaluating-document-parsers-for-air-gapped-rag-systems-58eh "From PDFs to Markdown - DEV Community"
+[10]: https://cookbook.openai.com/examples/parse_pdf_docs_for_rag "How to parse PDF docs for RAG - OpenAI"
+[11]: https://seantater.github.io/python/llm/rag/unstructured/pdf/2025/07/05/rag-speedrun-unstructured-pdfs.html "RAG Speedrun: Local LLMs and Unstructured PDF Ingestion"
+[12]: https://arxiv.org/abs/2401.02333 "Beyond Extraction: Contextualising Tabular Data for Efficient Summarisation by Language Models"
+[13]: https://neo4j.com/blog/developer/graph-llm-rag-application-pdf-documents/ "Building an LLM-Powered RAG App from PDF Documents"

@@ -5,10 +5,10 @@ import logging
 from importlib import import_module, util
 from pathlib import Path
 
-from ragsmith.backends.base import PdfToMarkdownBackend
-from ragsmith.errors import BackendConversionError, BackendNotAvailableError
+from src.backends.base import PdfToMarkdownBackend
+from src.errors import BackendConversionError, BackendNotAvailableError
 
-LOGGER = logging.getLogger("ragsmith.backends.markitdown")
+LOGGER = logging.getLogger("src.backends.markitdown")
 
 
 class MarkitdownBackend(PdfToMarkdownBackend):

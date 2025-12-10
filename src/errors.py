@@ -1,11 +1,11 @@
-"""Custom exceptions for RagSmith."""
+"""Custom exceptions for src."""
 
 from __future__ import annotations
 
 from typing import List
 
 class RagSmithError(Exception):
-    """Base exception for RagSmith."""
+    """Base exception for src."""
 
 
 class BackendNotAvailableError(RagSmithError):

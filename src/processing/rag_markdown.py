@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 from typing import Iterable, List
 
-from ragsmith.processing.cleaning import normalize_blank_lines, strip_noise_lines
+from src.processing.cleaning import normalize_blank_lines, strip_noise_lines
 
 
 # ---------------------------------------------------------------------------

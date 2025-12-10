@@ -6,10 +6,10 @@ from importlib import import_module
 from pathlib import Path
 from typing import Literal
 
-from ragsmith.backends.base import PdfToMarkdownBackend
-from ragsmith.errors import BackendConversionError, BackendNotAvailableError
+from src.backends.base import PdfToMarkdownBackend
+from src.errors import BackendConversionError, BackendNotAvailableError
 
-LOGGER = logging.getLogger("ragsmith.backends.docling")
+LOGGER = logging.getLogger("src.backends.docling")
 
 _DeviceLiteral = Literal["auto", "cpu", "cuda", "mps"]
 
